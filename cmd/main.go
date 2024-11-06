@@ -18,6 +18,9 @@ func main() {
 	//Banner router
 	http.Handle("/banner", middleware.AuthMiddleware(http.HandlerFunc(handler.BannerHandler)))
 
+	//Company router
+	http.Handle("/company", middleware.AuthMiddleware(http.HandlerFunc(handler.CompanyHandler)))
+
 	http.ListenAndServe(":8080", nil)
 
 }

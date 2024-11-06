@@ -266,3 +266,80 @@ func GetBannerHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(banner)
 
 }
+
+// Company Handler
+func CompanyHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostCompanyHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		GetCompanyHandler(w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func PostCompanyHandler(w http.ResponseWriter, r *http.Request) {
+
+	var company models.Company
+
+	if err := json.NewDecoder(r.Body).Decode(&company); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	id, err := helper.PostCompany(company.CompanyName, company.CoverImage, company.CreatedDate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	company.ID = id
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(company)
+}
+
+func GetCompanyHandler(w http.ResponseWriter, r *http.Request) {
+
+	company, err := helper.GetCompany()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(company)
+
+}
+
+// func GetPartHandlerByPartNumber(w http.ResponseWriter, r *http.Request) {
+// 	if r.Method != http.MethodGet {
+// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// 		return
+// 	}
+
+// 	// Extract part_number from URL query parameter
+// 	partNumber := r.URL.Query().Get("part_number")
+// 	if partNumber == "" {
+// 		http.Error(w, "part_number parameter is required", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// Retrieve parts from repository
+// 	parts, err := helper.GetPartByPartNumber(partNumber)
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	if len(parts) == 0 {
+// 		http.Error(w, "No parts found", http.StatusNotFound)
+// 		return
+// 	}
+
+// 	// Serialize parts to JSON and write response
+// 	w.Header().Set("Content-Type", "application/json")
+// 	err = json.NewEncoder(w).Encode(parts)
+// 	if err != nil {
+// 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+// 		return
+// 	}
+// }

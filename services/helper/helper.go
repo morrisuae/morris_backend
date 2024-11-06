@@ -194,3 +194,40 @@ func GetBanner() ([]models.Banner, error) {
 
 	return Banners, nil
 }
+
+// Company GET and POST
+func PostCompany(company_name, cover_image string, created_date time.Time) (uint, error) {
+	var id uint
+
+	currentTime := time.Now()
+	err := DB.QueryRow("INSERT INTO company (company_name, created_date, cover_image) VALUES ($1, $2, $3)", company_name, currentTime, cover_image).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post Successful")
+
+	return id, nil
+}
+
+func GetCompany() ([]models.Company, error) {
+	rows, err := DB.Query("SELECT image, created_date FROM banners")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var Companys []models.Company
+	for rows.Next() {
+		var Company models.Company
+		err := rows.Scan(&Company.ID, &Company.CompanyName, &Company.CreatedDate, &Company.CoverImage)
+		if err != nil {
+			return nil, err
+		}
+		Companys = append(Companys, Company)
+	}
+
+	fmt.Println("Get Successful")
+
+	return Companys, nil
+}

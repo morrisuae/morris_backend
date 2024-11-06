@@ -20,3 +20,11 @@ type Banner struct {
 	Image       string    `json:image`
 	CreatedDate time.Time `json:"created_date"`
 }
+
+type Company struct {
+	ID          uint      `json:"id"`
+	CompanyName string    `json:"company_name"`
+	CreatedDate time.Time `json:"created_date"`
+	UpdatedDate time.Time `json:"updated_date"`
+	CoverImage  string    `json:"cover_image"`
+}
