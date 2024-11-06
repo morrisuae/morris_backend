@@ -211,7 +211,7 @@ func PostCompany(company_name, cover_image string, created_date time.Time) (uint
 }
 
 func GetCompany() ([]models.Company, error) {
-	rows, err := DB.Query("SELECT image, created_date FROM banners")
+	rows, err := DB.Query("SELECT id, company_name, created_date, cover_image FROM company")
 	if err != nil {
 		return nil, err
 	}
@@ -230,4 +230,41 @@ func GetCompany() ([]models.Company, error) {
 	fmt.Println("Get Successful")
 
 	return Companys, nil
+}
+
+// PartCategory GET and POST
+func PostCategory(product_id, product_category, image string, created_date time.Time) (uint, error) {
+	var id uint
+
+	currentTime := time.Now()
+	err := DB.QueryRow("INSERT INTO Category (product_id, product_category, image, created_date) VALUES ($1, $2, $3)", product_id, product_category, image, currentTime).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post Successful")
+
+	return id, nil
+}
+
+func GetCategory() ([]models.PartCategory, error) {
+	rows, err := DB.Query("SELECT id, product_id, product_category, image, created_date FROM banners")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var Categories []models.PartCategory
+	for rows.Next() {
+		var Category models.PartCategory
+		err := rows.Scan(&Category.ID, &Category.ProductId, &Category.ProductCategory, &Category.CreatedDate)
+		if err != nil {
+			return nil, err
+		}
+		Categories = append(Categories, Category)
+	}
+
+	fmt.Println("Get Successful")
+
+	return Categories, nil
 }

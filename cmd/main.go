@@ -21,6 +21,9 @@ func main() {
 	//Company router
 	http.Handle("/company", middleware.AuthMiddleware(http.HandlerFunc(handler.CompanyHandler)))
 
+	//Category router
+	http.Handle("/category", middleware.AuthMiddleware(http.HandlerFunc(handler.CategoryHandler)))
+
 	http.ListenAndServe(":8080", nil)
 
 }

@@ -343,3 +343,46 @@ func GetCompanyHandler(w http.ResponseWriter, r *http.Request) {
 // 		return
 // 	}
 // }
+
+// Category Handler
+func CategoryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostCategoryHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		GetCategoryHandler(w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func PostCategoryHandler(w http.ResponseWriter, r *http.Request) {
+
+	var Category models.PartCategory
+
+	if err := json.NewDecoder(r.Body).Decode(&Category); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	id, err := helper.PostCategory(Category.ProductId, Category.ProductCategory, Category.Image, Category.CreatedDate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	Category.ID = id
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Category)
+}
+
+func GetCategoryHandler(w http.ResponseWriter, r *http.Request) {
+
+	Category, err := helper.GetCategory()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Category)
+
+}
