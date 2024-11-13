@@ -11,10 +11,10 @@ import (
 
 func Initdb() {
 	const (
-		host     = "ep-icy-sound-a2pm6hga.eu-central-1.pg.koyeb.app"
+		host     = "ep-lingering-brook-a255dk8x.eu-central-1.pg.koyeb.app"
 		port     = 5432
 		user     = "koyeb-adm"
-		password = "ZPt1wnmgf9kE"
+		password = "1ITJl8VcnfHy"
 		dbname   = "koyebdb"
 	)
 
