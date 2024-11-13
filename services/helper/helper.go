@@ -237,7 +237,7 @@ func PostCategory(product_id, product_category, image string, created_date time.
 	var id uint
 
 	currentTime := time.Now()
-	err := DB.QueryRow("INSERT INTO Category (product_id, product_category, image, created_date) VALUES ($1, $2, $3)", product_id, product_category, image, currentTime).Scan(&id)
+	err := DB.QueryRow("INSERT INTO category (product_id, product_category, image, created_date) VALUES ($1, $2, $3)", product_id, product_category, image, currentTime).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -248,7 +248,7 @@ func PostCategory(product_id, product_category, image string, created_date time.
 }
 
 func GetCategory() ([]models.PartCategory, error) {
-	rows, err := DB.Query("SELECT id, product_id, product_category, image, created_date FROM Category")
+	rows, err := DB.Query("SELECT id, product_id, product_category, image, created_date FROM category")
 	if err != nil {
 		return nil, err
 	}

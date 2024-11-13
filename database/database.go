@@ -33,10 +33,16 @@ func Initdb() {
 	}
 	fmt.Println("Database connection established")
 
-	createTable := `CREATE TABLE IF NOT EXISTS banners (
+	createTable := `CREATE TABLE IF NOT EXISTS parts (
 	id SERIAL PRIMARY KEY,
-	image TEXT,
-	created_date TIMESTAMP
+	part_number VARCHAR(256),
+	remain_part_number VARCHAR(256),
+	part_description VARCHAR(256),
+	fg_wison_part_number VARCHAR(256),
+	super_ss_number VARCHAR(256),
+	weight VARCHAR(256),
+	coo VARCHAR(256),
+	hs_code VARCHAR(256)
 	)`
 
 	_, err = helper.DB.Exec(createTable)
