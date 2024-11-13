@@ -33,22 +33,16 @@ func Initdb() {
 	}
 	fmt.Println("Database connection established")
 
-	// createTable := `CREATE TABLE IF NOT EXISTS parts (
-	// id SERIAL PRIMARY KEY,
-	// part_number VARCHAR(256),
-	// remain_part_number VARCHAR(256),
-	// part_description VARCHAR(256),
-	// fg_wison_part_number VARCHAR(256),
-	// super_ss_number VARCHAR(256),
-	// weight VARCHAR(256),
-	// coo VARCHAR(256),
-	// hs_code VARCHAR(256)
-	// )`
+	createTable := `CREATE TABLE IF NOT EXISTS banners (
+	id SERIAL PRIMARY KEY,
+	image TEXT,
+	created_date TIMESTAMP
+	)`
 
-	// _, err = helper.DB.Exec(createTable)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println("Table created successfully")
+	_, err = helper.DB.Exec(createTable)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Table created successfully")
 
 }

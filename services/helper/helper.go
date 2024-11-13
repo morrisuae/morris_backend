@@ -248,7 +248,7 @@ func PostCategory(product_id, product_category, image string, created_date time.
 }
 
 func GetCategory() ([]models.PartCategory, error) {
-	rows, err := DB.Query("SELECT id, product_id, product_category, image, created_date FROM banners")
+	rows, err := DB.Query("SELECT id, product_id, product_category, image, created_date FROM Category")
 	if err != nil {
 		return nil, err
 	}
