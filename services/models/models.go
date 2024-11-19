@@ -17,7 +17,7 @@ type Part struct {
 }
 
 type Banner struct {
-	Image       string    `json:image`
+	Image       string    `json:"image"`
 	CreatedDate time.Time `json:"created_date"`
 }
 
@@ -33,7 +33,7 @@ type PartCategory struct {
 	ID              uint      `json:"id"`
 	ProductId       string    `json:"product_id"`
 	ProductCategory string    `json:"product_category"`
-	Image           string    `json:image`
+	Image           string    `json:"image"`
 	CreatedDate     time.Time `json:"created_date"`
 	UpdatedDate     time.Time `json:"updated_date"`
 }
