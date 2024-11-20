@@ -25,5 +25,4 @@ func main() {
 	http.Handle("/category", middleware.AuthMiddleware(http.HandlerFunc(handler.CategoryHandler)))
 
 	http.ListenAndServe(":8080", nil)
-
 }
