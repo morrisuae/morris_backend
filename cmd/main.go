@@ -11,7 +11,7 @@ import (
 func main() {
 	database.Initdb()
 
-	//part router
+	//Part router
 	http.Handle("/part", middleware.AuthMiddleware(http.HandlerFunc(handler.PartHandler)))
 	http.Handle("/parts", middleware.AuthMiddleware(http.HandlerFunc(handler.GetPartHandlerByPartNumber)))
 
