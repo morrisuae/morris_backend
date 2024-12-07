@@ -33,18 +33,34 @@ func Initdb() {
 	}
 	fmt.Println("Database connection established")
 
-	createTable := `CREATE TABLE IF NOT EXISTS company (
-	id SERIAL PRIMARY KEY,
-	company_name TEXT,
-	created_date TIMESTAMP,
-	updated_date TIMESTAMP,
-	cover_image TEXT
-	)`
+	// createTable := `CREATE TABLE IF NOT EXISTS company (
+	// id SERIAL PRIMARY KEY,
+	// company_name TEXT,
+	// created_date TIMESTAMP,
+	// updated_date TIMESTAMP,
+	// cover_image TEXT
+	// )`
 
-	_, err = helper.DB.Exec(createTable)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Table created successfully")
+	// _, err = helper.DB.Exec(createTable)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println("Table created successfully")
+
+	// // Table and column details
+	// tableName := "parts"
+	// columnName := "sub_category"
+	// columnType := "TEXT" // Change to desired type, e.g., VARCHAR(100), INT, etc.
+
+	// // Construct the ALTER TABLE query
+	// query := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", tableName, columnName, columnType)
+
+	// // Execute the query
+	// _, err = helper.DB.Exec(query)
+	// if err != nil {
+	// 	log.Fatalf("Failed to add column: %v", err)
+	// }
+
+	// log.Println("Column added successfully!")
 
 }

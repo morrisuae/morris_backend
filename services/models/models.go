@@ -14,6 +14,8 @@ type Part struct {
 	Weight            string `json:"weight"`
 	Coo               string `json:"coo"`
 	HsCode            string `json:"hs_code"`
+	Image             string `json:"image"`
+	SubCategory       string `json:"sub_category"`
 }
 
 type Banner struct {

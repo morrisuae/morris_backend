@@ -12,11 +12,11 @@ import (
 var DB *sql.DB
 
 // Parts GET, POST, PUT and DELETE
-func PostPart(part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code string) (uint, error) {
+func PostPart(part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category string) (uint, error) {
 	// Connect to the database
 	var id uint
 
-	err := DB.QueryRow("INSERT INTO parts (part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code).Scan(&id)
+	err := DB.QueryRow("INSERT INTO parts (part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id", part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -27,7 +27,7 @@ func PostPart(part_number, remain_part_number, part_description, fg_wison_part_n
 }
 
 func GetPart() ([]models.Part, error) {
-	rows, err := DB.Query("SELECT id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code FROM parts")
+	rows, err := DB.Query("SELECT id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category FROM parts")
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func GetPart() ([]models.Part, error) {
 	var parts []models.Part
 	for rows.Next() {
 		var part models.Part
-		err := rows.Scan(&part.ID, &part.PartNumber, &part.RemainPartNumber, &part.PartDescription, &part.FgWisonPartNumber, &part.SuperSSNumber, &part.Weight, &part.Coo, &part.HsCode)
+		err := rows.Scan(&part.ID, &part.PartNumber, &part.RemainPartNumber, &part.PartDescription, &part.FgWisonPartNumber, &part.SuperSSNumber, &part.Weight, &part.Coo, &part.HsCode, &part.Image, &part.SubCategory)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +56,7 @@ func GetPartByPartNumber(partNumber string) ([]models.Part, error) {
 
 	if len(partNumber) >= 3 {
 		// Check if the full part number is provided
-		fullPartQuery := "SELECT id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code FROM parts WHERE part_number = $1"
+		fullPartQuery := "SELECT id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category FROM parts WHERE part_number = $1"
 		fullPartRows, err := DB.Query(fullPartQuery, partNumber)
 		if err != nil {
 			log.Println("Error executing full part query:", err)
@@ -67,7 +67,7 @@ func GetPartByPartNumber(partNumber string) ([]models.Part, error) {
 		// Check for exact match
 		for fullPartRows.Next() {
 			var part models.Part
-			err := fullPartRows.Scan(&part.ID, &part.PartNumber, &part.RemainPartNumber, &part.PartDescription, &part.FgWisonPartNumber, &part.SuperSSNumber, &part.Weight, &part.Coo, &part.HsCode)
+			err := fullPartRows.Scan(&part.ID, &part.PartNumber, &part.RemainPartNumber, &part.PartDescription, &part.FgWisonPartNumber, &part.SuperSSNumber, &part.Weight, &part.Coo, &part.HsCode, &part.Image, &part.SubCategory)
 			if err != nil {
 				log.Println("Error scanning row:", err)
 				return nil, err
@@ -81,11 +81,11 @@ func GetPartByPartNumber(partNumber string) ([]models.Part, error) {
 		}
 
 		// If no exact match, perform prefix search
-		query = "SELECT id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code FROM parts WHERE part_number LIKE $1"
+		query = "SELECT id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category FROM parts WHERE part_number LIKE $1"
 		args = append(args, partNumber[:3]+"%")
 	} else {
 		// Handle as an exact match if partNumber is shorter than 3 characters
-		query = "SELECT id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code FROM parts WHERE part_number = $1"
+		query = "SELECT id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category FROM parts WHERE part_number = $1"
 		args = append(args, partNumber)
 	}
 
@@ -98,7 +98,7 @@ func GetPartByPartNumber(partNumber string) ([]models.Part, error) {
 
 	for rows.Next() {
 		var part models.Part
-		err := rows.Scan(&part.ID, &part.PartNumber, &part.RemainPartNumber, &part.PartDescription, &part.FgWisonPartNumber, &part.SuperSSNumber, &part.Weight, &part.Coo, &part.HsCode)
+		err := rows.Scan(&part.ID, &part.PartNumber, &part.RemainPartNumber, &part.PartDescription, &part.FgWisonPartNumber, &part.SuperSSNumber, &part.Weight, &part.Coo, &part.HsCode, &part.Image, &part.SubCategory)
 		if err != nil {
 			log.Println("Error scanning row:", err)
 			return nil, err
@@ -114,8 +114,8 @@ func GetPartByPartNumber(partNumber string) ([]models.Part, error) {
 	return parts, nil
 }
 
-func PutPart(id uint, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code string) error {
-	result, err := DB.Exec("UPDATE parts SET part_number=$1, remain_part_number=$2, part_description=$3, fg_wison_part_number=$4, super_ss_number=$5, weight=$6, coo=$7, hs_code=$8 WHERE id=$9", part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, id)
+func PutPart(id uint, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category string) error {
+	result, err := DB.Exec("UPDATE parts SET part_number=$1, remain_part_number=$2, part_description=$3, fg_wison_part_number=$4, super_ss_number=$5, weight=$6, coo=$7, hs_code=$8, image=$9, sub_category=$10 WHERE id=$11", part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category, id)
 
 	if err != nil {
 		return fmt.Errorf("failed to query part: %w", err)

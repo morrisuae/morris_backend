@@ -38,13 +38,91 @@ func PartHandler(w http.ResponseWriter, r *http.Request) {
 
 func PostPartHandler(w http.ResponseWriter, r *http.Request) {
 
-	var part models.Part
-
-	if err := json.NewDecoder(r.Body).Decode(&part); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	err := r.ParseMultipartForm(10 << 20) // 10MB max file size
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
 	}
 
-	id, err := helper.PostPart(part.PartNumber, part.RemainPartNumber, part.PartDescription, part.FgWisonPartNumber, part.SuperSSNumber, part.Weight, part.Coo, part.HsCode)
+	var part models.Part
+
+	part.PartNumber = r.FormValue("title")
+	part.PartNumber = r.FormValue("part_number")
+	part.RemainPartNumber = r.FormValue("remain_part_number")
+	part.PartDescription = r.FormValue("part_description")
+	part.FgWisonPartNumber = r.FormValue("fg_wison_part_number")
+	part.SuperSSNumber = r.FormValue("super_ss_number")
+	part.Weight = r.FormValue("weight")
+	part.Coo = r.FormValue("coo")
+	part.HsCode = r.FormValue("hs_code")
+	part.SubCategory = r.FormValue("sub_category")
+
+	// Process uploaded image
+	file, _, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "Error uploading file", http.StatusBadRequest)
+		fmt.Println("Error uploading file:", err)
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		http.Error(w, "Error reading file content", http.StatusInternalServerError)
+		fmt.Println("Error reading file content:", err)
+		return
+	}
+
+	// Resize image if it exceeds 3MB
+	if len(fileBytes) > 3*1024*1024 {
+		img, _, err := image.Decode(bytes.NewReader(fileBytes))
+		if err != nil {
+			http.Error(w, "Error decoding image", http.StatusInternalServerError)
+			fmt.Println("Error decoding image:", err)
+			return
+		}
+
+		newImage := resize.Resize(800, 0, img, resize.Lanczos3)
+		var buf bytes.Buffer
+		err = jpeg.Encode(&buf, newImage, nil)
+		if err != nil {
+			http.Error(w, "Error encoding compressed image", http.StatusInternalServerError)
+			fmt.Println("Error encoding compressed image:", err)
+			return
+		}
+		fileBytes = buf.Bytes()
+	}
+
+	// Upload image to AWS S3
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("eu-north-1"), // Replace with your AWS region
+		Credentials: credentials.NewStaticCredentials(
+			"AKIAWMFUPPBUKH747TDX",                     // Replace with your AWS access key ID
+			"AvUBkX2gtAFWupNIBdCr9BtZUDbPtdd/Vj30Hj4J", // Replace with your AWS secret access key
+			""), // Optional token, leave blank if not using
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	svc := s3.New(sess)
+	imageKey := fmt.Sprintf("PartImage/%d.jpg", time.Now().Unix()) // Adjust key as needed
+	_, err = svc.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String("morriuae"), // Replace with your S3 bucket name
+		Key:    aws.String(imageKey),
+		Body:   bytes.NewReader(fileBytes),
+	})
+	if err != nil {
+		log.Printf("Failed to upload image to S3: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	// Construct imageURL assuming it's from your S3 bucket
+	imageURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
+	id, err := helper.PostPart(part.PartNumber, part.RemainPartNumber, part.PartDescription, part.FgWisonPartNumber, part.SuperSSNumber, part.Weight, part.Coo, part.HsCode, imageURL, part.SubCategory)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -119,7 +197,7 @@ func PutPartHandler(w http.ResponseWriter, r *http.Request) {
 	// Set the id from the query parameter
 	part.ID = uint(id)
 
-	err = helper.PutPart(part.ID, part.PartNumber, part.RemainPartNumber, part.PartDescription, part.FgWisonPartNumber, part.SuperSSNumber, part.Weight, part.Coo, part.HsCode)
+	err = helper.PutPart(part.ID, part.PartNumber, part.RemainPartNumber, part.PartDescription, part.FgWisonPartNumber, part.SuperSSNumber, part.Weight, part.Coo, part.HsCode, part.Image, part.SubCategory)
 	if err != nil {
 		if err.Error() == "Log not found" {
 			http.Error(w, "Log not found", http.StatusNotFound)
