@@ -63,20 +63,20 @@ func Initdb() {
 
 	// log.Println("Column added successfully!")
 
-	// Step 1: Update NULL values to a default value (e.g., empty string)
-	updateQuery := `UPDATE parts SET sub_category = '' WHERE sub_category IS NULL;`
-	_, err = helper.DB.Exec(updateQuery)
-	if err != nil {
-		log.Fatalf("Failed to update NULL values: %v", err)
-	}
-	fmt.Println("NULL values in 'sub_category' column updated successfully.")
+	// // Step 1: Update NULL values to a default value (e.g., empty string)
+	// updateQuery := `UPDATE parts SET sub_category = '' WHERE sub_category IS NULL;`
+	// _, err = helper.DB.Exec(updateQuery)
+	// if err != nil {
+	// 	log.Fatalf("Failed to update NULL values: %v", err)
+	// }
+	// fmt.Println("NULL values in 'sub_category' column updated successfully.")
 
-	// Step 2: Set the column to NOT NULL
-	alterQuery := `ALTER TABLE parts ALTER COLUMN sub_category SET NOT NULL;`
-	_, err = helper.DB.Exec(alterQuery)
-	if err != nil {
-		log.Fatalf("Failed to execute query: %v", err)
-	}
-	fmt.Println("Column 'sub_category' has been successfully updated to NOT NULL.")
+	// // Step 2: Set the column to NOT NULL
+	// alterQuery := `ALTER TABLE parts ALTER COLUMN sub_category SET NOT NULL;`
+	// _, err = helper.DB.Exec(alterQuery)
+	// if err != nil {
+	// 	log.Fatalf("Failed to execute query: %v", err)
+	// }
+	// fmt.Println("Column 'sub_category' has been successfully updated to NOT NULL.")
 
 }
