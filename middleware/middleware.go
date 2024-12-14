@@ -8,16 +8,16 @@ import (
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		// Handle preflight OPTIONS request
+		// Handle preflight OPTIONS request without authorization
 		if r.Method == http.MethodOptions {
 			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:4200")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusOK) // 200 OK
 			return
 		}
 
-		// Handle normal request
+		// Handle other requests with authorization
 		tokenString := r.Header.Get("Authorization")
 		token := strings.TrimPrefix(tokenString, "Bearer ")
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:4200")
