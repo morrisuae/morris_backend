@@ -33,19 +33,31 @@ func Initdb() {
 	}
 	fmt.Println("Database connection established")
 
-	// createTable := `CREATE TABLE IF NOT EXISTS company (
-	// id SERIAL PRIMARY KEY,
-	// company_name TEXT,
-	// created_date TIMESTAMP,
-	// updated_date TIMESTAMP,
-	// cover_image TEXT
-	// )`
+	createTable := `CREATE TABLE IF NOT EXISTS subcategory (
+	id SERIAL PRIMARY KEY,
+	main_category_name TEXT,
+	sub_category_name TEXT,
+	image TEXT,
+	created_date TIMESTAMP
+	)`
 
-	// _, err = helper.DB.Exec(createTable)
+	_, err = helper.DB.Exec(createTable)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Table created successfully")
+
+	// // Rename table
+	// oldTableName := "category"
+	// newTableName := "part"
+	// query := fmt.Sprintf("ALTER TABLE %s RENAME TO %s;", oldTableName, newTableName)
+
+	// _, err = helper.DB.Exec(query)
 	// if err != nil {
-	// 	log.Fatal(err)
+	// 	log.Fatalf("Error renaming table: %v", err)
 	// }
-	// fmt.Println("Table created successfully")
+
+	// fmt.Println("Table renamed successfully")
 
 	// // Table and column details
 	// tableName := "parts"

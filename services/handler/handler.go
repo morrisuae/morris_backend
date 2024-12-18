@@ -422,18 +422,18 @@ func GetCompanyHandler(w http.ResponseWriter, r *http.Request) {
 // 	}
 // }
 
-// Category Handler
-func CategoryHandler(w http.ResponseWriter, r *http.Request) {
+// PartCategory Handler
+func PartCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		PostCategoryHandler(w, r)
+		PostPartCategoryHandler(w, r)
 	} else if r.Method == http.MethodGet {
-		GetCategoryHandler(w, r)
+		GetPartCategoryHandler(w, r)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 	}
 }
 
-func PostCategoryHandler(w http.ResponseWriter, r *http.Request) {
+func PostPartCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	var Category models.PartCategory
 
@@ -441,7 +441,7 @@ func PostCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	id, err := helper.PostCategory(Category.ProductId, Category.ProductCategory, Category.Image, Category.CreatedDate)
+	id, err := helper.PostPartCategory(Category.ProductId, Category.ProductCategory, Category.Image, Category.CreatedDate)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -452,9 +452,9 @@ func PostCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Category)
 }
 
-func GetCategoryHandler(w http.ResponseWriter, r *http.Request) {
+func GetPartCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
-	Category, err := helper.GetCategory()
+	Category, err := helper.GetPartCategory()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -463,4 +463,210 @@ func GetCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Category)
 
+}
+
+// PartCategory Handler
+func CategoryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostCategoryHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		GetCategoryHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		PutCategoryHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		DeleteCategoryHandler(w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func PostCategoryHandler(w http.ResponseWriter, r *http.Request) {
+
+	var category models.Category
+
+	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	id, err := helper.PostCategory(category.Name, category.CategoryName, category.CreatedDate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	category.ID = id
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(category)
+}
+
+func GetCategoryHandler(w http.ResponseWriter, r *http.Request) {
+
+	category, err := helper.GetCategory()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(category)
+
+}
+
+func PutCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	var category models.Category
+	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Set the id from the query parameter
+	category.ID = uint(id)
+
+	err = helper.PutCategory(category.ID, category.Name, category.CategoryName)
+	if err != nil {
+		if err.Error() == "Log not found" {
+			http.Error(w, "Log not found", http.StatusNotFound)
+			return
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to update log: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(category); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func DeleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	err = helper.DeleteCategory(uint(id))
+	if err != nil {
+		if err.Error() == "Part not found" {
+			http.Error(w, "part not found", http.StatusNotFound)
+			return
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to delete part: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// SubCategory Handler
+func SubCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		GetSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		PutSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		DeleteSubCategoryHandler(w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func PostSubCategoryHandler(w http.ResponseWriter, r *http.Request) {
+
+	var subCategory models.SubCategory
+
+	if err := json.NewDecoder(r.Body).Decode(&subCategory); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	id, err := helper.PostSubCategory(subCategory.MainCategoryName, subCategory.SubCategoryName, subCategory.Image, subCategory.CreatedDate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	subCategory.ID = id
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(subCategory)
+}
+
+func GetSubCategoryHandler(w http.ResponseWriter, r *http.Request) {
+
+	subCategory, err := helper.GetSubCategory()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(subCategory)
+
+}
+
+func PutSubCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	var subCategory models.SubCategory
+	if err := json.NewDecoder(r.Body).Decode(&subCategory); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Set the id from the query parameter
+	subCategory.ID = uint(id)
+
+	err = helper.PutSubCategory(subCategory.ID, subCategory.MainCategoryName, subCategory.SubCategoryName, subCategory.Image)
+	if err != nil {
+		if err.Error() == "Log not found" {
+			http.Error(w, "Log not found", http.StatusNotFound)
+			return
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to update log: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(subCategory); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func DeleteSubCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	err = helper.DeleteSubCategory(uint(id))
+	if err != nil {
+		if err.Error() == "Part not found" {
+			http.Error(w, "part not found", http.StatusNotFound)
+			return
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to delete part: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

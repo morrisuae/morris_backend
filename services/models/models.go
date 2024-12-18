@@ -39,3 +39,18 @@ type PartCategory struct {
 	CreatedDate     time.Time `json:"created_date"`
 	UpdatedDate     time.Time `json:"updated_date"`
 }
+
+type Category struct {
+	ID           uint      `json:"id"`
+	Name         string    `json:"name"`
+	CategoryName string    `json:"category_name"`
+	CreatedDate  time.Time `json:"created_date"`
+}
+
+type SubCategory struct {
+	ID               uint      `json:"id"`
+	MainCategoryName string    `json:"main_category_name"`
+	SubCategoryName  string    `json:"Sub_category_name"`
+	Image            string    `json:"image"`
+	CreatedDate      time.Time `json:"created_date"`
+}

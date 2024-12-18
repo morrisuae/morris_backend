@@ -233,11 +233,11 @@ func GetCompany() ([]models.Company, error) {
 }
 
 // PartCategory GET and POST
-func PostCategory(product_id, product_category, image string, created_date time.Time) (uint, error) {
+func PostPartCategory(product_id, product_category, image string, created_date time.Time) (uint, error) {
 	var id uint
 
 	currentTime := time.Now()
-	err := DB.QueryRow("INSERT INTO category (product_id, product_category, image, created_date) VALUES ($1, $2, $3, $4)", product_id, product_category, image, currentTime).Scan(&id)
+	err := DB.QueryRow("INSERT INTO part (product_id, product_category, image, created_date) VALUES ($1, $2, $3, $4)", product_id, product_category, image, currentTime).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -247,8 +247,8 @@ func PostCategory(product_id, product_category, image string, created_date time.
 	return id, nil
 }
 
-func GetCategory() ([]models.PartCategory, error) {
-	rows, err := DB.Query("SELECT id, product_id, product_category, image, created_date FROM category")
+func GetPartCategory() ([]models.PartCategory, error) {
+	rows, err := DB.Query("SELECT id, product_id, product_category, image, created_date FROM part")
 	if err != nil {
 		return nil, err
 	}
@@ -267,4 +267,170 @@ func GetCategory() ([]models.PartCategory, error) {
 	fmt.Println("Get Successful")
 
 	return Categories, nil
+}
+
+// Category POST, GET, PUT and DELETE
+func PostCategory(name, category_name string, created_date time.Time) (uint, error) {
+	// Connect to the database
+
+	var id uint
+
+	currentTime := time.Now()
+	err := DB.QueryRow("INSERT INTO category (name, category_name, created_date) VALUES ($1, $2) RETURNING id", name, category_name, currentTime).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post Successful")
+
+	return id, nil
+}
+
+func GetCategory() ([]models.Category, error) {
+	rows, err := DB.Query("SELECT id, name, category_name, created_date FROM category")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var category []models.Category
+	for rows.Next() {
+		var Categories models.Category
+		err := rows.Scan(&Categories.ID, &Categories.Name, &Categories.CategoryName, Categories.CreatedDate)
+		if err != nil {
+			return nil, err
+		}
+		category = append(category, Categories)
+	}
+
+	fmt.Println("Get Successful")
+
+	return category, nil
+}
+
+func PutCategory(id uint, name, category_name string) error {
+	result, err := DB.Exec("UPDATE category SET name=$1, category_name=$2  WHERE id=$3", name, category_name, id)
+
+	if err != nil {
+		return fmt.Errorf("failed to query category: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		return fmt.Errorf("failed to determine affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("category not found")
+	}
+
+	fmt.Println("Update successfull")
+
+	return nil
+}
+
+func DeleteCategory(id uint) error {
+	result, err := DB.Exec("DELETE FROM category WHERE id=$1", id)
+
+	if err != nil {
+		return fmt.Errorf("failed to delete category: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		return fmt.Errorf("failed to determine affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("category not found")
+	}
+
+	fmt.Println("Delete successfull")
+
+	return nil
+}
+
+// SubCategory POST, GET, PUT and DELETE
+func PostSubCategory(main_category_name, sub_category_name, image string, created_date time.Time) (uint, error) {
+	// Connect to the database
+
+	var id uint
+
+	currentTime := time.Now()
+	err := DB.QueryRow("INSERT INTO subcategory (main_category_name, sub_category_name, image, created_date) VALUES ($1, $2) RETURNING id", main_category_name, sub_category_name, image, currentTime).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post Successful")
+
+	return id, nil
+}
+
+func GetSubCategory() ([]models.SubCategory, error) {
+	rows, err := DB.Query("SELECT id, main_category_name, sub_category_name, image, created_date FROM subcategory")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var SubCategories []models.SubCategory
+	for rows.Next() {
+		var subcategory models.SubCategory
+		err := rows.Scan(&subcategory.ID, &subcategory.MainCategoryName, &subcategory.SubCategoryName, &subcategory.Image, &subcategory.CreatedDate)
+		if err != nil {
+			return nil, err
+		}
+		SubCategories = append(SubCategories, subcategory)
+	}
+
+	fmt.Println("Get Successful")
+
+	return SubCategories, nil
+}
+
+func PutSubCategory(id uint, main_category_name, sub_category_name, image string) error {
+	result, err := DB.Exec("UPDATE subcategory SET main_category_name=$1, sub_category_name=$2, image=$3  WHERE id=$4", main_category_name, sub_category_name, image, id)
+
+	if err != nil {
+		return fmt.Errorf("failed to query category: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		return fmt.Errorf("failed to determine affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("category not found")
+	}
+
+	fmt.Println("Update successfull")
+
+	return nil
+}
+
+func DeleteSubCategory(id uint) error {
+	result, err := DB.Exec("DELETE FROM subcategory WHERE id=$1", id)
+
+	if err != nil {
+		return fmt.Errorf("failed to delete subcategory: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		return fmt.Errorf("failed to determine affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("subcategory not found")
+	}
+
+	fmt.Println("Delete successfull")
+
+	return nil
 }
