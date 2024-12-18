@@ -296,7 +296,7 @@ func GetCategory() ([]models.Category, error) {
 	var category []models.Category
 	for rows.Next() {
 		var Categories models.Category
-		err := rows.Scan(&Categories.ID, &Categories.Name, &Categories.CategoryName, Categories.CreatedDate)
+		err := rows.Scan(&Categories.ID, &Categories.Name, &Categories.CategoryName, &Categories.CreatedDate)
 		if err != nil {
 			return nil, err
 		}
