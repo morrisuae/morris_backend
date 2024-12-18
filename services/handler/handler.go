@@ -294,10 +294,10 @@ func PostBannerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Upload image to AWS S3
 	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"), // Replace with your AWS region
+		Region: aws.String("eu-north-1"), // Replace with your AWS region
 		Credentials: credentials.NewStaticCredentials(
-			"AKIAYS2NVN4MBSHP33FF",                     // Replace with your AWS access key ID
-			"aILySGhiQAB7SaFnqozcRZe1MhZ0zNODLof2Alr4", // Replace with your AWS secret access key
+			"AKIAWMFUPPBUKH747TDX",                     // Replace with your AWS access key ID
+			"AvUBkX2gtAFWupNIBdCr9BtZUDbPtdd/Vj30Hj4J", // Replace with your AWS secret access key
 			""), // Optional token, leave blank if not using
 	})
 	if err != nil {
@@ -307,9 +307,9 @@ func PostBannerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	svc := s3.New(sess)
-	imageKey := fmt.Sprintf("BannerImage/%d.jpg", time.Now().Unix()) // Adjust key as needed
+	imageKey := fmt.Sprintf("PartImage/%d.jpg", time.Now().Unix()) // Adjust key as needed
 	_, err = svc.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String("tendercall-db"), // Replace with your S3 bucket name
+		Bucket: aws.String("morriuae"), // Replace with your S3 bucket name
 		Key:    aws.String(imageKey),
 		Body:   bytes.NewReader(fileBytes),
 	})
@@ -320,7 +320,7 @@ func PostBannerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Construct imageURL assuming it's from your S3 bucket
-	imageURL := fmt.Sprintf("https://tendercall-db.s3.amazonaws.com/%s", imageKey)
+	imageURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
 
 	err = helper.PostBanner(imageURL, Banner.CreatedDate)
 	if err != nil {
@@ -585,13 +585,84 @@ func SubCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
 func PostSubCategoryHandler(w http.ResponseWriter, r *http.Request) {
 
-	var subCategory models.SubCategory
-
-	if err := json.NewDecoder(r.Body).Decode(&subCategory); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	err := r.ParseMultipartForm(10 << 20) // 10MB max file size
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
 	}
 
-	id, err := helper.PostSubCategory(subCategory.MainCategoryName, subCategory.SubCategoryName, subCategory.Image, subCategory.CreatedDate)
+	var subCategory models.SubCategory
+
+	subCategory.MainCategoryName = r.FormValue("main_category_name")
+	subCategory.SubCategoryName = r.FormValue("sub_category_name")
+
+	// Process uploaded image
+	file, _, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "Error uploading file", http.StatusBadRequest)
+		fmt.Println("Error uploading file:", err)
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		http.Error(w, "Error reading file content", http.StatusInternalServerError)
+		fmt.Println("Error reading file content:", err)
+		return
+	}
+
+	// Resize image if it exceeds 3MB
+	if len(fileBytes) > 3*1024*1024 {
+		img, _, err := image.Decode(bytes.NewReader(fileBytes))
+		if err != nil {
+			http.Error(w, "Error decoding image", http.StatusInternalServerError)
+			fmt.Println("Error decoding image:", err)
+			return
+		}
+
+		newImage := resize.Resize(800, 0, img, resize.Lanczos3)
+		var buf bytes.Buffer
+		err = jpeg.Encode(&buf, newImage, nil)
+		if err != nil {
+			http.Error(w, "Error encoding compressed image", http.StatusInternalServerError)
+			fmt.Println("Error encoding compressed image:", err)
+			return
+		}
+		fileBytes = buf.Bytes()
+	}
+
+	// Upload image to AWS S3
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("eu-north-1"), // Replace with your AWS region
+		Credentials: credentials.NewStaticCredentials(
+			"AKIAWMFUPPBUFJOAZMAT",                     // Replace with your AWS access key ID
+			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S", // Replace with your AWS secret access key
+			""), // Optional token, leave blank if not using
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	svc := s3.New(sess)
+	imageKey := fmt.Sprintf("SubCategoryImage/%d.jpg", time.Now().Unix()) // Adjust key as needed
+	_, err = svc.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String("morriuae"), // Replace with your S3 bucket name
+		Key:    aws.String(imageKey),
+		Body:   bytes.NewReader(fileBytes),
+	})
+	if err != nil {
+		log.Printf("Failed to upload image to S3: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	// Construct imageURL assuming it's from your S3 bucket
+	imageURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
+
+	id, err := helper.PostSubCategory(subCategory.MainCategoryName, subCategory.SubCategoryName, imageURL, subCategory.CreatedDate)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

@@ -276,7 +276,7 @@ func PostCategory(name, category_name string, created_date time.Time) (uint, err
 	var id uint
 
 	currentTime := time.Now()
-	err := DB.QueryRow("INSERT INTO category (name, category_name, created_date) VALUES ($1, $2) RETURNING id", name, category_name, currentTime).Scan(&id)
+	err := DB.QueryRow("INSERT INTO category (name, category_name, created_date) VALUES ($1, $2, $3) RETURNING id", name, category_name, currentTime).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -359,7 +359,7 @@ func PostSubCategory(main_category_name, sub_category_name, image string, create
 	var id uint
 
 	currentTime := time.Now()
-	err := DB.QueryRow("INSERT INTO subcategory (main_category_name, sub_category_name, image, created_date) VALUES ($1, $2) RETURNING id", main_category_name, sub_category_name, image, currentTime).Scan(&id)
+	err := DB.QueryRow("INSERT INTO subcategory (main_category_name, sub_category_name, image, created_date) VALUES ($1, $2, $3, $4) RETURNING id", main_category_name, sub_category_name, image, currentTime).Scan(&id)
 	if err != nil {
 		return 0, err
 	}

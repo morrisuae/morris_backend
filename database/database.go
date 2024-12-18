@@ -33,19 +33,19 @@ func Initdb() {
 	}
 	fmt.Println("Database connection established")
 
-	createTable := `CREATE TABLE IF NOT EXISTS subcategory (
-	id SERIAL PRIMARY KEY,
-	main_category_name TEXT,
-	sub_category_name TEXT,
-	image TEXT,
-	created_date TIMESTAMP
-	)`
+	// createTable := `CREATE TABLE IF NOT EXISTS subcategory (
+	// id SERIAL PRIMARY KEY,
+	// main_category_name TEXT,
+	// sub_category_name TEXT,
+	// image TEXT,
+	// created_date TIMESTAMP
+	// )`
 
-	_, err = helper.DB.Exec(createTable)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Table created successfully")
+	// _, err = helper.DB.Exec(createTable)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println("Table created successfully")
 
 	// // Rename table
 	// oldTableName := "category"
