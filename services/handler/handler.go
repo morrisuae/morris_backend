@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/nfnt/resize"
+	"golang.org/x/exp/rand"
 	"morris-backend.com/main/services/helper"
 	"morris-backend.com/main/services/models"
 )
@@ -35,7 +36,15 @@ func PartHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 	}
 }
+func generateRandomID() uint {
+	// Seed the random number generator with uint64
+	rand.Seed(uint64(time.Now().UnixNano()))
 
+	// Generate a random number between 40000 and 90000
+	randomID := rand.Uint32()%(90000-40000+1) + 40000
+
+	return uint(randomID)
+}
 func PostPartHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseMultipartForm(10 << 20) // 10MB max file size
@@ -46,6 +55,7 @@ func PostPartHandler(w http.ResponseWriter, r *http.Request) {
 
 	var part models.Part
 
+	part.PartNumber = r.FormValue("title")
 	part.PartNumber = r.FormValue("part_number")
 	part.RemainPartNumber = r.FormValue("remain_part_number")
 	part.PartDescription = r.FormValue("part_description")
@@ -121,9 +131,11 @@ func PostPartHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Construct imageURL assuming it's from your S3 bucket
 	imageURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
-	id, err := helper.PostPart(part.PartNumber, part.RemainPartNumber, part.PartDescription, part.FgWisonPartNumber, part.SuperSSNumber, part.Weight, part.Coo, part.HsCode, imageURL, part.SubCategory)
+	ida := generateRandomID()
+	id, err := helper.PostPart(ida, part.PartNumber, part.RemainPartNumber, part.PartDescription, part.FgWisonPartNumber, part.SuperSSNumber, part.Weight, part.Coo, part.HsCode, imageURL, part.SubCategory)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	part.ID = id

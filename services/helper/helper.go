@@ -12,17 +12,14 @@ import (
 var DB *sql.DB
 
 // Parts GET, POST, PUT and DELETE
-func PostPart(part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category string) (uint, error) {
-	// Connect to the database
-	var id uint
-
-	err := DB.QueryRow("INSERT INTO parts (part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id", part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category).Scan(&id)
-
+func PostPart(id uint, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category string) (uint, error) {
+	_, err := DB.Exec("INSERT INTO parts (id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+		id, part_number, remain_part_number, part_description, fg_wison_part_number, super_ss_number, weight, coo, hs_code, image, sub_category)
 	if err != nil {
-		return 0, fmt.Errorf("failed to insert category: %w", err)
+		return 0, err
 	}
-	fmt.Println("Post Successful")
 
+	fmt.Println("Post Successful with Manual ID:", id)
 	return id, nil
 }
 
