@@ -46,7 +46,6 @@ func PostPartHandler(w http.ResponseWriter, r *http.Request) {
 
 	var part models.Part
 
-	part.PartNumber = r.FormValue("title")
 	part.PartNumber = r.FormValue("part_number")
 	part.RemainPartNumber = r.FormValue("remain_part_number")
 	part.PartDescription = r.FormValue("part_description")
