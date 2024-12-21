@@ -170,7 +170,7 @@ func PostBanner(image string, title string, created_date time.Time) error {
 }
 
 func GetBanner() ([]models.Banner, error) {
-	rows, err := DB.Query("SELECT image, created_date FROM banners")
+	rows, err := DB.Query("SELECT image, title, created_date FROM banners")
 	if err != nil {
 		return nil, err
 	}
