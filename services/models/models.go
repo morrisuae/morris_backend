@@ -20,6 +20,7 @@ type Part struct {
 
 type Banner struct {
 	Image       string    `json:"image"`
+	Title       string    `json:"title"`
 	CreatedDate time.Time `json:"created_date"`
 }
 
@@ -53,4 +54,20 @@ type SubCategory struct {
 	SubCategoryName  string    `json:"Sub_category_name"`
 	Image            string    `json:"image"`
 	CreatedDate      time.Time `json:"created_date"`
+}
+
+type MorrisParts struct {
+	ID               uint   `json:"id"`
+	Name             string `json:"name"`
+	PartNumber       string `json:"part_number"`
+	PartDescription  string `json:"part_description"`
+	SuperSSNumber    string `json:"super_ss_number"`
+	Weight           string `json:"weight"`
+	HsCode           string `json:"hs_code"`
+	RemainPartNumber string `json:"remain_part_number"`
+	Coo              string `json:"coo"`
+	RefNO            string `json:"ref_no"`
+	Image            string `json:"image"`
+	MainCategory     string `json:"main_category"`
+	SubCategory      string `json:"sub_category"`
 }

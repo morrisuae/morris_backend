@@ -156,15 +156,14 @@ func DeletePart(id uint) error {
 }
 
 // Banner GET and POST
-func PostBanner(image string, created_date time.Time) error {
+func PostBanner(image string, title string, created_date time.Time) error {
 	// Connect to the database
 
 	currentTime := time.Now()
-	_, err := DB.Exec("INSERT INTO banners (image, created_date) VALUES ($1, $2)", image, currentTime)
+	_, err := DB.Exec("INSERT INTO banners (image, title, created_date) VALUES ($1, $2, $3)", image, title, currentTime)
 	if err != nil {
 		return err
 	}
-
 	fmt.Println("Post Successful")
 
 	return nil
@@ -425,6 +424,91 @@ func DeleteSubCategory(id uint) error {
 
 	if rowsAffected == 0 {
 		return fmt.Errorf("subcategory not found")
+	}
+
+	fmt.Println("Delete successfull")
+
+	return nil
+}
+
+func GetMorrisParts() ([]models.MorrisParts, error) {
+	rows, err := DB.Query(`
+		SELECT id, name, part_number, part_description, super_ss_number, weight, 
+		       hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category 
+		FROM morrisparts
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var morrisPartsList []models.MorrisParts
+	for rows.Next() {
+		var part models.MorrisParts
+		err := rows.Scan(
+			&part.ID,
+			&part.Name,
+			&part.PartNumber,
+			&part.PartDescription,
+			&part.SuperSSNumber,
+			&part.Weight,
+			&part.HsCode,
+			&part.RemainPartNumber,
+			&part.Coo,
+			&part.RefNO,
+			&part.Image,
+			&part.MainCategory,
+			&part.SubCategory,
+		)
+		if err != nil {
+			return nil, err
+		}
+		morrisPartsList = append(morrisPartsList, part)
+	}
+
+	fmt.Println("Get Morris Parts Successful")
+
+	return morrisPartsList, nil
+
+}
+
+// MorrisParts POST
+func PostMorrisParts(name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category string) (uint, error) {
+
+	var id uint
+
+	currentTime := time.Now()
+	err := DB.QueryRow(`
+		INSERT INTO morrisparts 
+		(name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category, created_date) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+		RETURNING id`,
+		name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category, currentTime,
+	).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post Morris Parts Successful")
+
+	return id, nil
+}
+
+func DeleteMorrisPart(id uint) error {
+	result, err := DB.Exec("DELETE FROM morrisparts WHERE id=$1", id)
+
+	if err != nil {
+		return fmt.Errorf("failed to delete part: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		return fmt.Errorf("failed to determine affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("part not found")
 	}
 
 	fmt.Println("Delete successfull")

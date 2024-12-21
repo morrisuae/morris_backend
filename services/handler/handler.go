@@ -333,7 +333,7 @@ func PostBannerHandler(w http.ResponseWriter, r *http.Request) {
 	// Construct imageURL assuming it's from your S3 bucket
 	imageURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
 
-	err = helper.PostBanner(imageURL, Banner.CreatedDate)
+	err = helper.PostBanner(imageURL, Banner.Title, Banner.CreatedDate)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -482,9 +482,9 @@ func CategoryHandler(w http.ResponseWriter, r *http.Request) {
 		PostCategoryHandler(w, r)
 	} else if r.Method == http.MethodGet {
 		GetCategoryHandler(w, r)
-	} else if r.Method == http.MethodGet {
+	} else if r.Method == http.MethodPut {
 		PutCategoryHandler(w, r)
-	} else if r.Method == http.MethodGet {
+	} else if r.Method == http.MethodDelete {
 		DeleteCategoryHandler(w, r)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
@@ -585,9 +585,9 @@ func SubCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		PostSubCategoryHandler(w, r)
 	} else if r.Method == http.MethodGet {
 		GetSubCategoryHandler(w, r)
-	} else if r.Method == http.MethodGet {
+	} else if r.Method == http.MethodPut {
 		PutSubCategoryHandler(w, r)
-	} else if r.Method == http.MethodGet {
+	} else if r.Method == http.MethodDelete {
 		DeleteSubCategoryHandler(w, r)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
@@ -748,6 +748,178 @@ func DeleteSubCategoryHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("Failed to delete part: %v", err), http.StatusInternalServerError)
 			return
 		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+
+}
+
+func MorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostMorrisPartsHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		GetMorrisPartsHandler(w, r)
+	} else if r.Method == http.MethodPut {
+		// PutSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodDelete {
+		DeleteMorrisPartHandler(w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+func GetMorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
+
+	subCategory, err := helper.GetMorrisParts()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(subCategory)
+
+}
+
+func PostMorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(10 << 20) // 10MB max file size
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	var morrisPart models.MorrisParts
+
+	// Parse form values
+	morrisPart.Name = r.FormValue("name")
+	morrisPart.PartNumber = r.FormValue("part_number")
+	morrisPart.PartDescription = r.FormValue("part_description")
+	morrisPart.SuperSSNumber = r.FormValue("super_ss_number")
+	morrisPart.Weight = r.FormValue("weight")
+	morrisPart.HsCode = r.FormValue("hs_code")
+	morrisPart.RemainPartNumber = r.FormValue("remain_part_number")
+	morrisPart.Coo = r.FormValue("coo")
+	morrisPart.RefNO = r.FormValue("ref_no")
+	morrisPart.MainCategory = r.FormValue("main_category")
+	morrisPart.SubCategory = r.FormValue("sub_category")
+
+	// Process uploaded image
+	file, _, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "Error uploading file", http.StatusBadRequest)
+		fmt.Println("Error uploading file:", err)
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		http.Error(w, "Error reading file content", http.StatusInternalServerError)
+		fmt.Println("Error reading file content:", err)
+		return
+	}
+
+	// Resize image if it exceeds 3MB
+	if len(fileBytes) > 3*1024*1024 {
+		img, _, err := image.Decode(bytes.NewReader(fileBytes))
+		if err != nil {
+			http.Error(w, "Error decoding image", http.StatusInternalServerError)
+			fmt.Println("Error decoding image:", err)
+			return
+		}
+
+		newImage := resize.Resize(800, 0, img, resize.Lanczos3)
+		var buf bytes.Buffer
+		err = jpeg.Encode(&buf, newImage, nil)
+		if err != nil {
+			http.Error(w, "Error encoding compressed image", http.StatusInternalServerError)
+			fmt.Println("Error encoding compressed image:", err)
+			return
+		}
+		fileBytes = buf.Bytes()
+	}
+
+	// Upload image to AWS S3
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("eu-north-1"),
+		Credentials: credentials.NewStaticCredentials(
+			"AKIAWMFUPPBUFJOAZMAT",
+			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S",
+			"",
+		),
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	svc := s3.New(sess)
+	imageKey := fmt.Sprintf("MorrisPartsImages/%d.jpg", time.Now().Unix())
+	_, err = svc.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String("morriuae"),
+		Key:    aws.String(imageKey),
+		Body:   bytes.NewReader(fileBytes),
+	})
+	if err != nil {
+		log.Printf("Failed to upload image to S3: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	// Construct imageURL assuming it's from your S3 bucket
+	imageURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
+
+	// Save part details into database
+	id, err := helper.PostMorrisParts(
+		morrisPart.Name,
+		morrisPart.PartNumber,
+		morrisPart.PartDescription,
+		morrisPart.SuperSSNumber,
+		morrisPart.Weight,
+		morrisPart.HsCode,
+		morrisPart.RemainPartNumber,
+		morrisPart.Coo,
+		morrisPart.RefNO,
+		imageURL,
+		morrisPart.MainCategory,
+		morrisPart.SubCategory,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	morrisPart.ID = id
+
+	// Return response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(morrisPart)
+}
+
+func DeleteMorrisPartHandler(w http.ResponseWriter, r *http.Request) {
+	// Retrieve the part ID from query parameters
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Convert ID to an integer
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID format", http.StatusBadRequest)
+		return
+	}
+
+	// Call the helper function to delete the part
+	err = helper.DeleteMorrisPart(uint(id))
+	if err != nil {
+		if err.Error() == "Part not found" {
+			http.Error(w, "Part not found", http.StatusNotFound)
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to delete part: %v", err), http.StatusInternalServerError)
+		}
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
