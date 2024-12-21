@@ -179,7 +179,7 @@ func GetBanner() ([]models.Banner, error) {
 	var Banners []models.Banner
 	for rows.Next() {
 		var Banner models.Banner
-		err := rows.Scan(&Banner.Image, &Banner.CreatedDate)
+		err := rows.Scan(&Banner.Image, &Banner.Title, &Banner.CreatedDate)
 		if err != nil {
 			return nil, err
 		}
