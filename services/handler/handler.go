@@ -266,6 +266,7 @@ func PostBannerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var Banner models.Banner
+	Banner.Title = r.FormValue("title")
 
 	// Process uploaded image
 	file, _, err := r.FormFile("image")
