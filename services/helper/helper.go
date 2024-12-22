@@ -2,6 +2,7 @@ package helper
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -155,20 +156,6 @@ func DeletePart(id uint) error {
 	return nil
 }
 
-// Banner GET and POST
-func PostBanner(image string, title string, created_date time.Time) error {
-	// Connect to the database
-
-	currentTime := time.Now()
-	_, err := DB.Exec("INSERT INTO banners (image, title, created_date) VALUES ($1, $2, $3)", image, title, currentTime)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Post Successful")
-
-	return nil
-}
-
 func GetBanner() ([]models.Banner, error) {
 	rows, err := DB.Query("SELECT image, title, created_date FROM banners")
 	if err != nil {
@@ -265,43 +252,28 @@ func GetPartCategory() ([]models.PartCategory, error) {
 	return Categories, nil
 }
 
-// Category POST, GET, PUT and DELETE
-func PostCategory(name, category_name string, created_date time.Time) (uint, error) {
-	// Connect to the database
+func PostCategory(image, category_name string, created_date time.Time) (uint, error) {
 
 	var id uint
 
-	currentTime := time.Now()
-	err := DB.QueryRow("INSERT INTO category (name, category_name, created_date) VALUES ($1, $2, $3) RETURNING id", name, category_name, currentTime).Scan(&id)
-	if err != nil {
-		return 0, err
+	// Set the current time for created_date if not provided
+	if created_date.IsZero() {
+		created_date = time.Now()
 	}
 
-	fmt.Println("Post Successful")
+	// Insert the category into the database
+	err := DB.QueryRow(
+		"INSERT INTO category (image, category_name, created_date) VALUES ($1, $2, $3) RETURNING id",
+		image, category_name, created_date,
+	).Scan(&id)
 
+	// Handle potential errors during insertion
+	if err != nil {
+		return 0, fmt.Errorf("failed to insert category: %w", err)
+	}
+
+	fmt.Println("PostCategory Successful")
 	return id, nil
-}
-
-func GetCategory() ([]models.Category, error) {
-	rows, err := DB.Query("SELECT id, name, category_name, created_date FROM category")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var category []models.Category
-	for rows.Next() {
-		var Categories models.Category
-		err := rows.Scan(&Categories.ID, &Categories.Name, &Categories.CategoryName, &Categories.CreatedDate)
-		if err != nil {
-			return nil, err
-		}
-		category = append(category, Categories)
-	}
-
-	fmt.Println("Get Successful")
-
-	return category, nil
 }
 
 func PutCategory(id uint, name, category_name string) error {
@@ -348,87 +320,34 @@ func DeleteCategory(id uint) error {
 	return nil
 }
 
-// SubCategory POST, GET, PUT and DELETE
-func PostSubCategory(main_category_name, sub_category_name, image string, created_date time.Time) (uint, error) {
-	// Connect to the database
-
-	var id uint
-
-	currentTime := time.Now()
-	err := DB.QueryRow("INSERT INTO subcategory (main_category_name, sub_category_name, image, created_date) VALUES ($1, $2, $3, $4) RETURNING id", main_category_name, sub_category_name, image, currentTime).Scan(&id)
+func GetCategory() ([]models.Category, error) {
+	// Query the database to get all categories
+	rows, err := DB.Query("SELECT id, image, category_name, created_date FROM category")
 	if err != nil {
-		return 0, err
-	}
-
-	fmt.Println("Post Successful")
-
-	return id, nil
-}
-
-func GetSubCategory() ([]models.SubCategory, error) {
-	rows, err := DB.Query("SELECT id, main_category_name, sub_category_name, image, created_date FROM subcategory")
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
 	defer rows.Close()
 
-	var SubCategories []models.SubCategory
+	// Slice to hold all retrieved categories
+	var categories []models.Category
+
+	// Iterate through the result set
 	for rows.Next() {
-		var subcategory models.SubCategory
-		err := rows.Scan(&subcategory.ID, &subcategory.MainCategoryName, &subcategory.SubCategoryName, &subcategory.Image, &subcategory.CreatedDate)
+		var category models.Category
+		err := rows.Scan(&category.ID, &category.Image, &category.CategoryName, &category.CreatedDate)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan category: %w", err)
 		}
-		SubCategories = append(SubCategories, subcategory)
+		categories = append(categories, category)
 	}
 
-	fmt.Println("Get Successful")
-
-	return SubCategories, nil
-}
-
-func PutSubCategory(id uint, main_category_name, sub_category_name, image string) error {
-	result, err := DB.Exec("UPDATE subcategory SET main_category_name=$1, sub_category_name=$2, image=$3  WHERE id=$4", main_category_name, sub_category_name, image, id)
-
-	if err != nil {
-		return fmt.Errorf("failed to query category: %w", err)
+	// Check for errors during row iteration
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error occurred during row iteration: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-
-	if err != nil {
-		return fmt.Errorf("failed to determine affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("category not found")
-	}
-
-	fmt.Println("Update successfull")
-
-	return nil
-}
-
-func DeleteSubCategory(id uint) error {
-	result, err := DB.Exec("DELETE FROM subcategory WHERE id=$1", id)
-
-	if err != nil {
-		return fmt.Errorf("failed to delete subcategory: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-
-	if err != nil {
-		return fmt.Errorf("failed to determine affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("subcategory not found")
-	}
-
-	fmt.Println("Delete successfull")
-
-	return nil
+	fmt.Println("GetCategory Successful")
+	return categories, nil
 }
 
 func GetMorrisParts() ([]models.MorrisParts, error) {
@@ -514,4 +433,166 @@ func DeleteMorrisPart(id uint) error {
 	fmt.Println("Delete successfull")
 
 	return nil
+}
+
+func CreateBanner(image, title string) (uint, error) {
+	var id uint
+	currentTime := time.Now()
+	err := DB.QueryRow(
+		"INSERT INTO banners (image, title, created_date) VALUES ($1, $2, $3) RETURNING id",
+		image, title, currentTime,
+	).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+func GetBanners() ([]models.Banner, error) {
+	rows, err := DB.Query("SELECT id, image, title, created_date FROM banners")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var banners []models.Banner
+	for rows.Next() {
+		var banner models.Banner
+		err := rows.Scan(&banner.ID, &banner.Image, &banner.Title, &banner.CreatedDate)
+		if err != nil {
+			return nil, err
+		}
+		banners = append(banners, banner)
+	}
+	return banners, nil
+}
+func DeleteBanner(id uint) error {
+	result, err := DB.Exec("DELETE FROM banners WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("Banner not found")
+	}
+	return nil
+}
+
+func InsertHomeCompanySlide(name, image string) (uint, error) {
+	query := `INSERT INTO home_company_slides (name, image, created_date) VALUES ($1, $2, NOW()) RETURNING id`
+	var id uint
+	err := DB.QueryRow(query, name, image).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func GetHomeCompanySlides() ([]models.HomeCompanySlides, error) {
+	query := `SELECT id, name, image, created_date FROM home_company_slides ORDER BY created_date DESC`
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var slides []models.HomeCompanySlides
+	for rows.Next() {
+		var slide models.HomeCompanySlides
+		err := rows.Scan(&slide.ID, &slide.Name, &slide.Image, &slide.CreatedDate)
+		if err != nil {
+			return nil, err
+		}
+		slides = append(slides, slide)
+	}
+	return slides, nil
+}
+
+func DeleteHomeCompanySlide(id uint) error {
+	query := `DELETE FROM home_company_slides WHERE id = ?`
+	result, err := DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return errors.New("slide not found")
+	}
+	return nil
+}
+
+func InsertSubCategory(mainCategoryName, subCategoryName, image, categoryType string) (uint, error) {
+	var id uint
+	currentTime := time.Now()
+	err := DB.QueryRow(
+		"INSERT INTO subcategories (category_name, sub_category_name, image, category_type, created_date) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+		mainCategoryName, subCategoryName, image, categoryType, currentTime,
+	).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+func GetSubCategories() ([]models.SubCategory, error) {
+	query := `SELECT id, category_name, sub_category_name, image, category_type, created_date FROM subcategories ORDER BY created_date DESC`
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subCategories []models.SubCategory
+	for rows.Next() {
+		var subCategory models.SubCategory
+		err := rows.Scan(&subCategory.ID, &subCategory.MainCategoryName, &subCategory.SubCategoryName, &subCategory.Image, &subCategory.CategoryType, &subCategory.CreatedDate)
+		if err != nil {
+			return nil, err
+		}
+		subCategories = append(subCategories, subCategory)
+	}
+
+	// Check if there was an error during iteration
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return subCategories, nil
+}
+
+func GetSubCategoriesByCategoryNameAndType(categoryName, categoryType string) ([]models.SubCategory, error) {
+	query := `
+		SELECT id, category_name, Sub_category_name, image, category_type, created_date 
+		FROM subcategories 
+		WHERE category_name = $1 AND category_type = $2 
+		ORDER BY created_date DESC`
+
+	rows, err := DB.Query(query, categoryName, categoryType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subCategories []models.SubCategory
+	for rows.Next() {
+		var subCategory models.SubCategory
+		err := rows.Scan(&subCategory.ID, &subCategory.MainCategoryName, &subCategory.SubCategoryName, &subCategory.Image, &subCategory.CategoryType, &subCategory.CreatedDate)
+		if err != nil {
+			return nil, err
+		}
+		subCategories = append(subCategories, subCategory)
+	}
+
+	// Check for any iteration errors
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return subCategories, nil
 }

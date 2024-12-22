@@ -19,6 +19,7 @@ type Part struct {
 }
 
 type Banner struct {
+	ID          uint      `json:"id"`
 	Image       string    `json:"image"`
 	Title       string    `json:"title"`
 	CreatedDate time.Time `json:"created_date"`
@@ -43,16 +44,17 @@ type PartCategory struct {
 
 type Category struct {
 	ID           uint      `json:"id"`
-	Name         string    `json:"name"`
+	Image        string    `json:"image"`
 	CategoryName string    `json:"category_name"`
 	CreatedDate  time.Time `json:"created_date"`
 }
 
 type SubCategory struct {
 	ID               uint      `json:"id"`
-	MainCategoryName string    `json:"main_category_name"`
+	MainCategoryName string    `json:"category_name"`
 	SubCategoryName  string    `json:"Sub_category_name"`
 	Image            string    `json:"image"`
+	CategoryType     string    `json:"category_type"`
 	CreatedDate      time.Time `json:"created_date"`
 }
 
@@ -70,4 +72,11 @@ type MorrisParts struct {
 	Image            string `json:"image"`
 	MainCategory     string `json:"main_category"`
 	SubCategory      string `json:"sub_category"`
+}
+
+type HomeCompanySlides struct {
+	ID          uint      `json:"id"`
+	Name        string    `json:"name"`
+	Image       string    `json:"image"`
+	CreatedDate time.Time `json:"created_date"`
 }
