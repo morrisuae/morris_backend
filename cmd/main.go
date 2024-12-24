@@ -34,5 +34,7 @@ func main() {
 	//Subcatefory router
 	http.Handle("/morrisparts", middleware.AuthMiddleware(http.HandlerFunc(handler.MorrisPartsHandler)))
 
+	http.Handle("/morrispartssearch", middleware.AuthMiddleware(http.HandlerFunc(handler.MorrisPartsSearchHandler)))
+
 	http.ListenAndServe(":8080", nil)
 }
