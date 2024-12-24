@@ -484,11 +484,25 @@ func MorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		PostMorrisPartsHandler(w, r)
 	} else if r.Method == http.MethodGet {
-		GetMorrisPartsHandler(w, r)
+		GetPartsByCategoryHandler(w, r)
 	} else if r.Method == http.MethodPut {
 		// PutSubCategoryHandler(w, r)
 	} else if r.Method == http.MethodDelete {
 		DeleteMorrisPartHandler(w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func MorrisPartsSearchHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		//	PostMorrisPartsHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		SearchPartsHandler(w, r)
+	} else if r.Method == http.MethodPut {
+		// PutSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodDelete {
+		//	DeleteMorrisPartHandler(w, r)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 	}
@@ -1098,4 +1112,49 @@ func GetSubCategoriesByCategoryNameAndTypeHandler(w http.ResponseWriter, r *http
 
 	// Encode and send the response
 	json.NewEncoder(w).Encode(subCategories)
+}
+
+func GetPartsByCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters
+	mainCategory := r.URL.Query().Get("main_category")
+	subCategory := r.URL.Query().Get("sub_category")
+
+	// Validate query parameters
+	if mainCategory == "" || subCategory == "" {
+		http.Error(w, "Both main_category and sub_category are required", http.StatusBadRequest)
+		return
+	}
+
+	// Fetch data using the helper function
+	parts, err := helper.GetPartsByCategory(mainCategory, subCategory)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(parts)
+}
+
+func SearchPartsHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameter
+	partNumber := r.URL.Query().Get("part_number")
+
+	// Validate query parameter
+	if partNumber == "" {
+		http.Error(w, "part_number is required", http.StatusBadRequest)
+		return
+	}
+
+	// Fetch data using the helper function
+	parts, err := helper.SearchParts(partNumber)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(parts)
 }

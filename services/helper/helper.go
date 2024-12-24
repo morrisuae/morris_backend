@@ -596,3 +596,80 @@ func GetSubCategoriesByCategoryNameAndType(categoryName, categoryType string) ([
 
 	return subCategories, nil
 }
+
+func GetPartsByCategory(mainCategory, subCategory string) ([]models.MorrisParts, error) {
+	if mainCategory == "" || subCategory == "" {
+		return nil, errors.New("main_category and sub_category are required")
+	}
+
+	query := `
+		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
+		       remain_part_number, coo, ref_no, image, main_category, sub_category
+		FROM morrisparts
+		WHERE main_category = $1 AND sub_category = $2
+		ORDER BY id ASC`
+
+	rows, err := DB.Query(query, mainCategory, subCategory)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var parts []models.MorrisParts
+	for rows.Next() {
+		var part models.MorrisParts
+		err := rows.Scan(
+			&part.ID, &part.Name, &part.PartNumber, &part.PartDescription, &part.SuperSSNumber,
+			&part.Weight, &part.HsCode, &part.RemainPartNumber, &part.Coo, &part.RefNO,
+			&part.Image, &part.MainCategory, &part.SubCategory,
+		)
+		if err != nil {
+			return nil, err
+		}
+		parts = append(parts, part)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return parts, nil
+}
+func SearchParts(partNumber string) ([]models.MorrisParts, error) {
+	if partNumber == "" {
+		return nil, errors.New("part_number is required")
+	}
+
+	query := `
+		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
+		       remain_part_number, coo, ref_no, image, main_category, sub_category
+		FROM morrisparts
+		WHERE part_number ILIKE $1
+		ORDER BY id ASC`
+
+	rows, err := DB.Query(query, "%"+partNumber+"%")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var parts []models.MorrisParts
+	for rows.Next() {
+		var part models.MorrisParts
+		err := rows.Scan(
+			&part.ID, &part.Name, &part.PartNumber, &part.PartDescription, &part.SuperSSNumber,
+			&part.Weight, &part.HsCode, &part.RemainPartNumber, &part.Coo, &part.RefNO,
+			&part.Image, &part.MainCategory, &part.SubCategory,
+		)
+		if err != nil {
+			return nil, err
+		}
+		parts = append(parts, part)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return parts, nil
+}
