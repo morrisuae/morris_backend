@@ -36,5 +36,7 @@ func main() {
 
 	http.Handle("/morrispartssearch", middleware.AuthMiddleware(http.HandlerFunc(handler.MorrisPartsSearchHandler)))
 
+	http.Handle("/admin/parts", middleware.AuthMiddleware(http.HandlerFunc(handler.MorrisPartsSearchHandler)))
+
 	http.ListenAndServe(":8080", nil)
 }

@@ -507,6 +507,7 @@ func MorrisPartsSearchHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 	}
 }
+
 func GetMorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
 
 	subCategory, err := helper.GetMorrisParts()
@@ -1157,4 +1158,20 @@ func SearchPartsHandler(w http.ResponseWriter, r *http.Request) {
 	// Send response as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(parts)
+}
+
+//ADMIN SIDE
+
+func AdminPartHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		//	PostMorrisPartsHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		SearchPartsHandler(w, r)
+	} else if r.Method == http.MethodPut {
+		// PutSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodDelete {
+		//	DeleteMorrisPartHandler(w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
 }
