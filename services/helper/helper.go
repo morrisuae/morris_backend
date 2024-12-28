@@ -674,6 +674,151 @@ func SearchParts(partNumber string) ([]models.MorrisParts, error) {
 	return parts, nil
 }
 
+//ADMIN
 
-//ADMIN 
+// GetMorrisParts retrieves all MorrisParts from the database.
+func GetAdminParts(db *sql.DB) ([]models.MorrisParts, error) {
+	query := `
+		SELECT 
+			id, name, part_number, part_description, super_ss_number, 
+			weight, hs_code, remain_part_number, coo, ref_no, 
+			image, main_category, sub_category 
+		FROM morris_parts
+		ORDER BY name ASC
+	`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
+	var parts []models.MorrisParts
+	for rows.Next() {
+		var part models.MorrisParts
+		err := rows.Scan(
+			&part.ID, &part.Name, &part.PartNumber, &part.PartDescription,
+			&part.SuperSSNumber, &part.Weight, &part.HsCode, &part.RemainPartNumber,
+			&part.Coo, &part.RefNO, &part.Image, &part.MainCategory, &part.SubCategory,
+		)
+		if err != nil {
+			return nil, err
+		}
+		parts = append(parts, part)
+	}
+
+	if len(parts) == 0 {
+		return nil, errors.New("no parts found")
+	}
+
+	return parts, nil
+}
+
+// GetSubCategories retrieves all subcategories from the database.
+func GetAdminSubCategories() ([]models.SubCategory, error) {
+	query := `
+		SELECT 
+			id, main_category_name, sub_category_name, image, category_type, created_date 
+		FROM sub_categories
+		ORDER BY created_date DESC
+	`
+
+	rows, err := DB.Query(query) // Assume `DB` is your database connection instance.
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subCategories []models.SubCategory
+	for rows.Next() {
+		var subCategory models.SubCategory
+		err := rows.Scan(
+			&subCategory.ID,
+			&subCategory.MainCategoryName,
+			&subCategory.SubCategoryName,
+			&subCategory.Image,
+			&subCategory.CategoryType,
+			&subCategory.CreatedDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+		subCategories = append(subCategories, subCategory)
+	}
+
+	return subCategories, nil
+}
+
+// DeleteSubCategory deletes a subcategory by its ID.
+func DeleteSubCategory(id uint) error {
+	// Execute the DELETE query
+	result, err := DB.Exec("DELETE FROM subcategories WHERE id=$1", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete subcategory: %w", err)
+	}
+
+	// Check the number of rows affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to determine affected rows: %w", err)
+	}
+
+	// If no rows were affected, the subcategory was not found
+	if rowsAffected == 0 {
+		return fmt.Errorf("subcategory not found")
+	}
+
+	fmt.Println("Delete successful")
+	return nil
+}
+
+// UpdatePart updates a part in the database based on its ID.
+func UpdatePart(part models.MorrisParts) error {
+	query := `
+		UPDATE morrisparts 
+		SET 
+			name = $1, 
+			part_number = $2, 
+			part_description = $3, 
+			super_ss_number = $4, 
+			weight = $5, 
+			hs_code = $6, 
+			remain_part_number = $7, 
+			coo = $8, 
+			ref_no = $9, 
+			image = $10, 
+			main_category = $11, 
+			sub_category = $12
+		WHERE id = $13
+	`
+
+	result, err := DB.Exec(query,
+		part.Name,
+		part.PartNumber,
+		part.PartDescription,
+		part.SuperSSNumber,
+		part.Weight,
+		part.HsCode,
+		part.RemainPartNumber,
+		part.Coo,
+		part.RefNO,
+		part.Image,
+		part.MainCategory,
+		part.SubCategory,
+		part.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update part: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to determine affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("part not found")
+	}
+
+	fmt.Println("Update successful")
+	return nil
+}

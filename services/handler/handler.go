@@ -486,7 +486,7 @@ func MorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == http.MethodGet {
 		GetPartsByCategoryHandler(w, r)
 	} else if r.Method == http.MethodPut {
-		// PutSubCategoryHandler(w, r)
+		UpdatePartHandler(w, r)
 	} else if r.Method == http.MethodDelete {
 		DeleteMorrisPartHandler(w, r)
 	} else {
@@ -1166,12 +1166,210 @@ func AdminPartHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		//	PostMorrisPartsHandler(w, r)
 	} else if r.Method == http.MethodGet {
-		SearchPartsHandler(w, r)
+		GetMorrisAdminPartsHandler(w, r)
 	} else if r.Method == http.MethodPut {
 		// PutSubCategoryHandler(w, r)
 	} else if r.Method == http.MethodDelete {
-		//	DeleteMorrisPartHandler(w, r)
+
 	} else {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 	}
+}
+
+func GetMorrisAdminPartsHandler(w http.ResponseWriter, r *http.Request) {
+	// Retrieve Morris parts from the database
+	morrisParts, err := helper.GetMorrisParts()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set the response content type to JSON
+	w.Header().Set("Content-Type", "application/json")
+
+	// Encode and send the response
+	json.NewEncoder(w).Encode(morrisParts)
+}
+
+func AdminSubCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		//	PostMorrisPartsHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		GetAdminSubCategoriesHandler(w, r)
+	} else if r.Method == http.MethodPut {
+		// PutSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodDelete {
+		DeleteAdminSubCategoryHandler(w, r)
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func GetAdminSubCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+	// Fetch subcategories using the helper function
+	subCategories, err := helper.GetSubCategories()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set the response content type to JSON
+	w.Header().Set("Content-Type", "application/json")
+
+	// Encode and send the response
+	json.NewEncoder(w).Encode(subCategories)
+}
+
+func DeleteAdminSubCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	// Get the ID from query parameters
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Convert ID to an integer
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	// Call the helper function to delete the subcategory
+	err = helper.DeleteSubCategory(uint(id))
+	if err != nil {
+		if err.Error() == "Subcategory not found" {
+			http.Error(w, "Subcategory not found", http.StatusNotFound)
+			return
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to delete subcategory: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Respond with no content
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func UpdatePartHandler(w http.ResponseWriter, r *http.Request) {
+	// Ensure the method is PUT or PATCH
+	if r.Method != http.MethodPut && r.Method != http.MethodPatch {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the ID from the query parameter
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID format", http.StatusBadRequest)
+		return
+	}
+
+	// Parse the request body to extract the part details
+	var part models.MorrisParts
+	err = json.NewDecoder(r.Body).Decode(&part)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Process the uploaded image if any
+	file, _, err := r.FormFile("image")
+	if err != nil && err != http.ErrMissingFile {
+		http.Error(w, "Error uploading file", http.StatusBadRequest)
+		fmt.Println("Error uploading file:", err)
+		return
+	}
+	defer file.Close()
+
+	var fileBytes []byte
+	if file != nil {
+		// Read file content
+		fileBytes, err = ioutil.ReadAll(file)
+		if err != nil {
+			http.Error(w, "Error reading file content", http.StatusInternalServerError)
+			fmt.Println("Error reading file content:", err)
+			return
+		}
+
+		// Resize image if it exceeds 3MB
+		if len(fileBytes) > 3*1024*1024 {
+			img, _, err := image.Decode(bytes.NewReader(fileBytes))
+			if err != nil {
+				http.Error(w, "Error decoding image", http.StatusInternalServerError)
+				fmt.Println("Error decoding image:", err)
+				return
+			}
+
+			// Resize the image (set width to 800px and height auto)
+			newImage := resize.Resize(800, 0, img, resize.Lanczos3)
+
+			var buf bytes.Buffer
+			err = jpeg.Encode(&buf, newImage, nil)
+			if err != nil {
+				http.Error(w, "Error encoding resized image", http.StatusInternalServerError)
+				fmt.Println("Error encoding resized image:", err)
+				return
+			}
+			fileBytes = buf.Bytes()
+		}
+	}
+
+	// Upload image to AWS S3 if the file exists
+	if len(fileBytes) > 0 {
+		// Initialize the AWS session
+		sess, err := session.NewSession(&aws.Config{
+			Region: aws.String("eu-north-1"), // Replace with your AWS region
+			Credentials: credentials.NewStaticCredentials(
+				"AKIAWMFUPPBUFJOAZMAT",                     // Replace with your AWS access key ID
+				"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S", // Replace with your AWS secret access key
+				"",
+			),
+		})
+		if err != nil {
+			log.Printf("Failed to create AWS session: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		svc := s3.New(sess)
+		imageKey := fmt.Sprintf("PartImages/%d.jpg", time.Now().Unix()) // Use a unique key for the image
+		_, err = svc.PutObject(&s3.PutObjectInput{
+			Bucket: aws.String("morriuae"), // Replace with your S3 bucket name
+			Key:    aws.String(imageKey),
+			Body:   bytes.NewReader(fileBytes),
+		})
+		if err != nil {
+			log.Printf("Failed to upload image to S3: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Construct image URL
+		part.Image = fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
+	}
+
+	// Set the ID of the part
+	part.ID = uint(id)
+
+	// Call the helper function to update the part
+	err = helper.UpdatePart(part)
+	if err != nil {
+		if err.Error() == "part not found" {
+			http.Error(w, "Part not found", http.StatusNotFound)
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to update part: %v", err), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Respond with no content
+	w.WriteHeader(http.StatusNoContent)
 }
