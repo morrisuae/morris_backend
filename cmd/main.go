@@ -38,5 +38,7 @@ func main() {
 
 	http.Handle("/admin/parts", middleware.AuthMiddleware(http.HandlerFunc(handler.AdminPartHandler)))
 
+	http.Handle("/admin/subcategory", middleware.AuthMiddleware(http.HandlerFunc(handler.AdminSubCategoryHandler)))
+
 	http.ListenAndServe(":8080", nil)
 }
