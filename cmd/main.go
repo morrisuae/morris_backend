@@ -46,5 +46,7 @@ func main() {
 
 	http.Handle("/otherenquiries", middleware.AuthMiddleware(http.HandlerFunc(handler.OtherQueryHandler)))
 
+	http.Handle("/subcategory", middleware.AuthMiddleware(http.HandlerFunc(handler.GetHomeSubCategoriesHandler)))
+
 	http.ListenAndServe(":8080", nil)
 }
