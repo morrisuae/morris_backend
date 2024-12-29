@@ -80,3 +80,18 @@ type HomeCompanySlides struct {
 	Image       string    `json:"image"`
 	CreatedDate time.Time `json:"created_date"`
 }
+
+type EnquiresModel struct {
+	ID          uint      `json:"id"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	Phone       string    `json:"phone"`
+	Enquiry     string    `json:"enquiry"`
+	CreatedDate time.Time `json:"created_date"`
+}
+
+type OtherQuery struct {
+	ID    uint   `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}

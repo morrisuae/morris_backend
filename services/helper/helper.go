@@ -861,3 +861,81 @@ func GetPartsOnlyByCategory(mainCategory string) ([]models.MorrisParts, error) {
 
 	return parts, nil
 }
+func GetEnquiries() ([]models.EnquiresModel, error) {
+	query := `SELECT id, name, email, phone, enquiry, created_date FROM enquiries ORDER BY created_date DESC`
+
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query enquiries: %w", err)
+	}
+	defer rows.Close()
+
+	var enquiries []models.EnquiresModel
+	for rows.Next() {
+		var enquiry models.EnquiresModel
+		err := rows.Scan(&enquiry.ID, &enquiry.Name, &enquiry.Email, &enquiry.Phone, &enquiry.Enquiry, &enquiry.CreatedDate)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan enquiry: %w", err)
+		}
+		enquiries = append(enquiries, enquiry)
+	}
+
+	return enquiries, nil
+}
+
+func PostEnquiry(name, email, phone, enquiry string, createdDate time.Time) (uint, error) {
+	var id uint
+
+	err := DB.QueryRow(`
+        INSERT INTO enquiries 
+        (name, email, phone, enquiry, created_date) 
+        VALUES ($1, $2, $3, $4, $5) 
+        RETURNING id`,
+		name, email, phone, enquiry, createdDate,
+	).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post Enquiry Successful")
+
+	return id, nil
+}
+
+func PostOtherQuery(name, email string) (uint, error) {
+	var id uint
+
+	err := DB.QueryRow(`
+        INSERT INTO other_queries (name, email) 
+        VALUES ($1, $2) 
+        RETURNING id`, name, email).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post Other Query Successful")
+	return id, nil
+}
+
+func GetOtherQueries() ([]models.OtherQuery, error) {
+	rows, err := DB.Query("SELECT id, name, email FROM other_queries")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var queries []models.OtherQuery
+	for rows.Next() {
+		var query models.OtherQuery
+		if err := rows.Scan(&query.ID, &query.Name, &query.Email); err != nil {
+			return nil, err
+		}
+		queries = append(queries, query)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return queries, nil
+}

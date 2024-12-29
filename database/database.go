@@ -28,18 +28,15 @@ func Initdb() {
 		log.Fatalf("Error opening database: %v", err)
 	}
 
-	if err = helper.DB.Ping(); err != nil {
-		log.Fatalf("Error connecting to the database: %v", err)
-	}
-	fmt.Println("Database connection established")
+	// if err = helper.DB.Ping(); err != nil {
+	// 	log.Fatalf("Error connecting to the database: %v", err)
+	// }
+	// fmt.Println("Database connection established")
 
-	// createTable := `CREATE TABLE IF NOT EXISTS subcategories (
+	// createTable := `CREATE TABLE IF NOT EXISTS other_queries (
 	// id SERIAL PRIMARY KEY,
-	// category_name TEXT,
-	// category_type TEXT,
-	// image TEXT,
-	// Sub_category_name TEXT,
-	// created_date TIMESTAMP
+	// name TEXT,
+	// email TEXT
 	// )`
 
 	// _, err = helper.DB.Exec(createTable)

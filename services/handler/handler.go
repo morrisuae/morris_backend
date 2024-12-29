@@ -1409,3 +1409,127 @@ func GetPartsByOnlyCategory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(parts)
 }
+
+func EnquiriesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostEnquiriesHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		GetEnquiriesHandler(w, r)
+	} else if r.Method == http.MethodPut {
+		// PutSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func GetEnquiriesHandler(w http.ResponseWriter, r *http.Request) {
+	// Ensure the method is GET
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Fetch enquiries using helper function
+	enquiries, err := helper.GetEnquiries()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to retrieve enquiries: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Set response content type to JSON
+	w.Header().Set("Content-Type", "application/json")
+
+	// Encode the response as JSON
+	json.NewEncoder(w).Encode(enquiries)
+}
+
+func PostEnquiriesHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	var enquiry models.EnquiresModel
+
+	// Parse form values
+	enquiry.Name = r.FormValue("name")
+	enquiry.Email = r.FormValue("email")
+	enquiry.Phone = r.FormValue("phone")
+	enquiry.Enquiry = r.FormValue("enquiry")
+	enquiry.CreatedDate = time.Now()
+
+	// Save enquiry details into the database
+	id, err := helper.PostEnquiry(
+		enquiry.Name,
+		enquiry.Email,
+		enquiry.Phone,
+		enquiry.Enquiry,
+		enquiry.CreatedDate,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	enquiry.ID = id
+
+	// Return response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(enquiry)
+}
+
+func OtherQueryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostOtherQueryHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		GetOtherQueriesHandler(w, r)
+	} else if r.Method == http.MethodPut {
+		// PutSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func PostOtherQueryHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse form data
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	var query models.OtherQuery
+	query.Name = r.FormValue("name")
+	query.Email = r.FormValue("email")
+
+	// Save the query into the database
+	id, err := helper.PostOtherQuery(query.Name, query.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	query.ID = id
+
+	// Return response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(query)
+}
+
+func GetOtherQueriesHandler(w http.ResponseWriter, r *http.Request) {
+	// You can fetch all queries or a specific query by ID
+	queries, err := helper.GetOtherQueries()
+	if err != nil {
+		http.Error(w, "Error fetching queries", http.StatusInternalServerError)
+		return
+	}
+
+	// Return the queries as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(queries)
+}
