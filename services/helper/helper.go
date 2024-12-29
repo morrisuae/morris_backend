@@ -822,3 +822,42 @@ func UpdatePart(part models.MorrisParts) error {
 	fmt.Println("Update successful")
 	return nil
 }
+
+func GetPartsOnlyByCategory(mainCategory string) ([]models.MorrisParts, error) {
+	if mainCategory == "" {
+		return nil, errors.New("main_category is required")
+	}
+
+	query := `
+		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
+		       remain_part_number, coo, ref_no, image, main_category, sub_category
+		FROM morrisparts
+		WHERE main_category = $1
+		ORDER BY id ASC`
+
+	rows, err := DB.Query(query, mainCategory)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var parts []models.MorrisParts
+	for rows.Next() {
+		var part models.MorrisParts
+		err := rows.Scan(
+			&part.ID, &part.Name, &part.PartNumber, &part.PartDescription, &part.SuperSSNumber,
+			&part.Weight, &part.HsCode, &part.RemainPartNumber, &part.Coo, &part.RefNO,
+			&part.Image, &part.MainCategory, &part.SubCategory,
+		)
+		if err != nil {
+			return nil, err
+		}
+		parts = append(parts, part)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return parts, nil
+}

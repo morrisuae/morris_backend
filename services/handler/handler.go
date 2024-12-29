@@ -1373,3 +1373,39 @@ func UpdatePartHandler(w http.ResponseWriter, r *http.Request) {
 	// Respond with no content
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func GetPartsByOnlyCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		//	PostMorrisPartsHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		GetPartsByOnlyCategory(w, r)
+	} else if r.Method == http.MethodPut {
+		// PutSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func GetPartsByOnlyCategory(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameter
+	mainCategory := r.URL.Query().Get("main_category")
+
+	// Validate query parameter
+	if mainCategory == "" {
+		http.Error(w, "main_category is required", http.StatusBadRequest)
+		return
+	}
+
+	// Fetch data using the helper function
+	parts, err := helper.GetPartsOnlyByCategory(mainCategory)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(parts)
+}
