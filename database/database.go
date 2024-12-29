@@ -28,10 +28,10 @@ func Initdb() {
 		log.Fatalf("Error opening database: %v", err)
 	}
 
-	// if err = helper.DB.Ping(); err != nil {
-	// 	log.Fatalf("Error connecting to the database: %v", err)
-	// }
-	// fmt.Println("Database connection established")
+	if err = helper.DB.Ping(); err != nil {
+		log.Fatalf("Error connecting to the database: %v", err)
+	}
+	fmt.Println("Database connection established")
 
 	// createTable := `CREATE TABLE IF NOT EXISTS other_queries (
 	// id SERIAL PRIMARY KEY,

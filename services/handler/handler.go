@@ -1533,3 +1533,32 @@ func GetOtherQueriesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(queries)
 }
+
+func GetHomeSubCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+
+	} else if r.Method == http.MethodGet {
+		GetHomeSubCategories(w, r)
+	} else if r.Method == http.MethodPut {
+		// PutSubCategoryHandler(w, r)
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func GetHomeSubCategories(w http.ResponseWriter, r *http.Request) {
+	// Call the helper function to get the subcategories
+	subCategories, err := helper.GetSubCategoriesWithoutQuary()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set the response content type to JSON
+	w.Header().Set("Content-Type", "application/json")
+
+	// Encode and send the response
+	json.NewEncoder(w).Encode(subCategories)
+}

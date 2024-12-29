@@ -939,3 +939,34 @@ func GetOtherQueries() ([]models.OtherQuery, error) {
 
 	return queries, nil
 }
+
+func GetSubCategoriesWithoutQuary() ([]models.SubCategory, error) {
+	// Query to fetch all subcategories, without filtering by category_name and category_type
+	query := `
+		SELECT id, category_name, Sub_category_name, image, category_type, created_date 
+		FROM subcategories 
+		ORDER BY created_date DESC`
+
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subCategories []models.SubCategory
+	for rows.Next() {
+		var subCategory models.SubCategory
+		err := rows.Scan(&subCategory.ID, &subCategory.MainCategoryName, &subCategory.SubCategoryName, &subCategory.Image, &subCategory.CategoryType, &subCategory.CreatedDate)
+		if err != nil {
+			return nil, err
+		}
+		subCategories = append(subCategories, subCategory)
+	}
+
+	// Check for any iteration errors
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return subCategories, nil
+}
