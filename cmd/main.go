@@ -42,5 +42,9 @@ func main() {
 
 	http.Handle("/parts/home", middleware.AuthMiddleware(http.HandlerFunc(handler.GetPartsByOnlyCategoryHandler)))
 
+	http.Handle("/enquiries", middleware.AuthMiddleware(http.HandlerFunc(handler.EnquiriesHandler)))
+
+	http.Handle("/otherenquiries", middleware.AuthMiddleware(http.HandlerFunc(handler.OtherQueryHandler)))
+
 	http.ListenAndServe(":8080", nil)
 }
