@@ -1540,7 +1540,7 @@ func GetHomeSubCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == http.MethodGet {
 		GetHomeSubCategories(w, r)
 	} else if r.Method == http.MethodPut {
-		// PutSubCategoryHandler(w, r)
+
 	} else if r.Method == http.MethodDelete {
 
 	} else {
@@ -1561,4 +1561,40 @@ func GetHomeSubCategories(w http.ResponseWriter, r *http.Request) {
 
 	// Encode and send the response
 	json.NewEncoder(w).Encode(subCategories)
+}
+
+func GetPartsByOnlySubCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+
+	} else if r.Method == http.MethodGet {
+		GetPartsByOnlySubCategory(w, r)
+	} else if r.Method == http.MethodPut {
+
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func GetPartsByOnlySubCategory(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameter
+	subCategory := r.URL.Query().Get("sub_category")
+
+	// Validate query parameter
+	if subCategory == "" {
+		http.Error(w, "sub_category is required", http.StatusBadRequest)
+		return
+	}
+
+	// Fetch data using the helper function
+	parts, err := helper.GetPartsOnlyBySubCategory(subCategory)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(parts)
 }

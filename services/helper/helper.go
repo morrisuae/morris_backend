@@ -970,3 +970,45 @@ func GetSubCategoriesWithoutQuary() ([]models.SubCategory, error) {
 
 	return subCategories, nil
 }
+
+func GetPartsOnlyBySubCategory(subCategory string) ([]models.MorrisParts, error) {
+	// Validate that subCategory is not empty
+	if subCategory == "" {
+		return nil, errors.New("sub_category is required")
+	}
+
+	// Query to fetch parts based on sub_category
+	query := `
+		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
+		       remain_part_number, coo, ref_no, image, main_category, sub_category
+		FROM morrisparts
+		WHERE sub_category = $1
+		ORDER BY id ASC`
+
+	rows, err := DB.Query(query, subCategory)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var parts []models.MorrisParts
+	for rows.Next() {
+		var part models.MorrisParts
+		err := rows.Scan(
+			&part.ID, &part.Name, &part.PartNumber, &part.PartDescription, &part.SuperSSNumber,
+			&part.Weight, &part.HsCode, &part.RemainPartNumber, &part.Coo, &part.RefNO,
+			&part.Image, &part.MainCategory, &part.SubCategory,
+		)
+		if err != nil {
+			return nil, err
+		}
+		parts = append(parts, part)
+	}
+
+	// Check for any iteration errors
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return parts, nil
+}
