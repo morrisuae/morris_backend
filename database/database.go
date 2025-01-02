@@ -33,10 +33,14 @@ func Initdb() {
 	}
 	fmt.Println("Database connection established")
 
-	// createTable := `CREATE TABLE IF NOT EXISTS other_queries (
+	// createTable := `CREATE TABLE IF NOT EXISTS enquiries (
 	// id SERIAL PRIMARY KEY,
 	// name TEXT,
-	// email TEXT
+	// email TEXT,
+	// phone TEXT,
+	// enquiry TEXT,
+	// attachment TEXT,
+	// created_date TIMESTAMP
 	// )`
 
 	// _, err = helper.DB.Exec(createTable)

@@ -87,11 +87,6 @@ type EnquiresModel struct {
 	Email       string    `json:"email"`
 	Phone       string    `json:"phone"`
 	Enquiry     string    `json:"enquiry"`
+	Attachments string    `json:"attachment"`
 	CreatedDate time.Time `json:"created_date"`
-}
-
-type OtherQuery struct {
-	ID    uint   `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
 }

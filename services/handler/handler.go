@@ -1410,130 +1410,6 @@ func GetPartsByOnlyCategory(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(parts)
 }
 
-func EnquiriesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		PostEnquiriesHandler(w, r)
-	} else if r.Method == http.MethodGet {
-		GetEnquiriesHandler(w, r)
-	} else if r.Method == http.MethodPut {
-		// PutSubCategoryHandler(w, r)
-	} else if r.Method == http.MethodDelete {
-
-	} else {
-		http.Error(w, "Invalid request method", http.StatusBadRequest)
-	}
-}
-
-func GetEnquiriesHandler(w http.ResponseWriter, r *http.Request) {
-	// Ensure the method is GET
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Fetch enquiries using helper function
-	enquiries, err := helper.GetEnquiries()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to retrieve enquiries: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Set response content type to JSON
-	w.Header().Set("Content-Type", "application/json")
-
-	// Encode the response as JSON
-	json.NewEncoder(w).Encode(enquiries)
-}
-
-func PostEnquiriesHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
-		return
-	}
-
-	var enquiry models.EnquiresModel
-
-	// Parse form values
-	enquiry.Name = r.FormValue("name")
-	enquiry.Email = r.FormValue("email")
-	enquiry.Phone = r.FormValue("phone")
-	enquiry.Enquiry = r.FormValue("enquiry")
-	enquiry.CreatedDate = time.Now()
-
-	// Save enquiry details into the database
-	id, err := helper.PostEnquiry(
-		enquiry.Name,
-		enquiry.Email,
-		enquiry.Phone,
-		enquiry.Enquiry,
-		enquiry.CreatedDate,
-	)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	enquiry.ID = id
-
-	// Return response as JSON
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(enquiry)
-}
-
-func OtherQueryHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		PostOtherQueryHandler(w, r)
-	} else if r.Method == http.MethodGet {
-		GetOtherQueriesHandler(w, r)
-	} else if r.Method == http.MethodPut {
-		// PutSubCategoryHandler(w, r)
-	} else if r.Method == http.MethodDelete {
-
-	} else {
-		http.Error(w, "Invalid request method", http.StatusBadRequest)
-	}
-}
-
-func PostOtherQueryHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse form data
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
-		return
-	}
-
-	var query models.OtherQuery
-	query.Name = r.FormValue("name")
-	query.Email = r.FormValue("email")
-
-	// Save the query into the database
-	id, err := helper.PostOtherQuery(query.Name, query.Email)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	query.ID = id
-
-	// Return response as JSON
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(query)
-}
-
-func GetOtherQueriesHandler(w http.ResponseWriter, r *http.Request) {
-	// You can fetch all queries or a specific query by ID
-	queries, err := helper.GetOtherQueries()
-	if err != nil {
-		http.Error(w, "Error fetching queries", http.StatusInternalServerError)
-		return
-	}
-
-	// Return the queries as JSON
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(queries)
-}
-
 func GetHomeSubCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 
@@ -1597,4 +1473,127 @@ func GetPartsByOnlySubCategory(w http.ResponseWriter, r *http.Request) {
 	// Send response as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(parts)
+}
+
+///-------------------------------/////
+
+func EnquiryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		HandlePostEnquiry(w, r)
+	} else if r.Method == http.MethodGet {
+		GetEnquiries(w, r)
+	} else if r.Method == http.MethodPut {
+
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func HandlePostEnquiry(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the multipart form with a 10 MB limit
+	err := r.ParseMultipartForm(10 << 20) // 10 MB
+	if err != nil {
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
+
+	// Extract form fields
+	name := r.FormValue("name")
+	email := r.FormValue("email")
+	phone := r.FormValue("phone")
+	enquiry := r.FormValue("enquiry")
+
+	// Validate required fields
+	if name == "" || email == "" || phone == "" || enquiry == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Extract file
+	file, header, err := r.FormFile("attachment")
+	if err != nil {
+		http.Error(w, "Failed to read attachment", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Read file bytes
+	fileBytes := new(bytes.Buffer)
+	if _, err := fileBytes.ReadFrom(file); err != nil {
+		http.Error(w, "Failed to read file bytes", http.StatusInternalServerError)
+		return
+	}
+
+	// Upload file to S3
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("eu-north-1"),
+		Credentials: credentials.NewStaticCredentials(
+			"AKIAWMFUPPBUFJOAZMAT",                     // Replace with your AWS access key ID
+			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S", // Replace with your AWS secret access key
+			""), // Optional token, leave blank if not using
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	svc := s3.New(sess)
+	fileKey := fmt.Sprintf("attachments/%d_%s", time.Now().Unix(), header.Filename)
+	_, err = svc.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String("morriuae"), // Replace with your S3 bucket name
+		Key:    aws.String(fileKey),
+		Body:   bytes.NewReader(fileBytes.Bytes()),
+	})
+	if err != nil {
+		log.Printf("Failed to upload file to S3: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	// Construct file URL
+	attachmentURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", fileKey)
+
+	// Save enquiry to the database
+	id, err := helper.PostEnquiry(name, email, phone, enquiry, attachmentURL)
+	if err != nil {
+		http.Error(w, "Failed to save enquiry: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Create response object
+	response := models.EnquiresModel{
+		ID:          id,
+		Name:        name,
+		Email:       email,
+		Phone:       phone,
+		Enquiry:     enquiry,
+		Attachments: attachmentURL,
+		CreatedDate: time.Now(),
+	}
+
+	// Send JSON response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
+}
+
+func GetEnquiries(w http.ResponseWriter, r *http.Request) {
+	enquiries, err := helper.GetEnquiries()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(enquiries)
 }
