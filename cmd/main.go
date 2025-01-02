@@ -42,13 +42,13 @@ func main() {
 
 	http.Handle("/parts/home", middleware.AuthMiddleware(http.HandlerFunc(handler.GetPartsByOnlyCategoryHandler)))
 
-	http.Handle("/enquiries", middleware.AuthMiddleware(http.HandlerFunc(handler.EnquiriesHandler)))
-
-	http.Handle("/otherenquiries", middleware.AuthMiddleware(http.HandlerFunc(handler.OtherQueryHandler)))
-
 	http.Handle("/subcategory", middleware.AuthMiddleware(http.HandlerFunc(handler.GetHomeSubCategoriesHandler)))
 
 	http.Handle("/part/subcategory", middleware.AuthMiddleware(http.HandlerFunc(handler.GetPartsByOnlySubCategoryHandler)))
 
+	http.Handle("/enquiries", middleware.AuthMiddleware(http.HandlerFunc(handler.EnquiryHandler)))
+
+	// http.HandleFunc("/enquiries", handler.HandlePostEnquiry)
 	http.ListenAndServe(":8080", nil)
+
 }
