@@ -989,3 +989,60 @@ func GetEnquiries() ([]models.EnquiresModel, error) {
 
 	return enquiriesList, nil
 }
+func UpdateMorrisParts(id uint, name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category string) error {
+	// Base query
+	query := `
+		UPDATE morrisparts 
+		SET name = $1, 
+		    part_number = $2, 
+		    part_description = $3, 
+		    super_ss_number = $4, 
+		    weight = $5, 
+		    hs_code = $6, 
+		    remain_part_number = $7, 
+		    coo = $8, 
+		    ref_no = $9, 
+		    main_category = $10, 
+		    sub_category = $11`
+	params := []interface{}{
+		name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, main_category, sub_category,
+	}
+
+	// Dynamically include the image if provided
+	if image != "" {
+		query += `, image = $12`
+		params = append(params, image)
+	}
+
+	// Add the WHERE clause and the id parameter
+	query += ` WHERE id = $13`
+	params = append(params, id)
+
+	// If image is not provided, adjust the placeholder numbering
+	if image == "" {
+		query = `
+		UPDATE morrisparts 
+		SET name = $1, 
+		    part_number = $2, 
+		    part_description = $3, 
+		    super_ss_number = $4, 
+		    weight = $5, 
+		    hs_code = $6, 
+		    remain_part_number = $7, 
+		    coo = $8, 
+		    ref_no = $9, 
+		    main_category = $10, 
+		    sub_category = $11 
+		WHERE id = $12`
+		params = append(params[:11], id) // Exclude image, append ID at the correct index
+	}
+
+	// Execute the query
+	_, err := DB.Exec(query, params...)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Update Morris Parts Successful")
+	return nil
+}

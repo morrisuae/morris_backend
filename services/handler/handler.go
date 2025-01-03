@@ -486,7 +486,7 @@ func MorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == http.MethodGet {
 		GetPartsByCategoryHandler(w, r)
 	} else if r.Method == http.MethodPut {
-		UpdatePartHandler(w, r)
+		UpdateMorrisParts(w, r)
 	} else if r.Method == http.MethodDelete {
 		DeleteMorrisPartHandler(w, r)
 	} else {
@@ -1596,4 +1596,121 @@ func GetEnquiries(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(enquiries)
+}
+
+func UpdateMorrisParts(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(10 << 20) // 10MB max file size
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	var morrisPart models.MorrisParts
+
+	// Parse form values
+	id, err := strconv.ParseUint(r.FormValue("id"), 10, 64)
+	if err != nil || id == 0 {
+		http.Error(w, "Invalid or missing ID", http.StatusBadRequest)
+		return
+	}
+	morrisPart.ID = uint(id)
+
+	morrisPart.Name = r.FormValue("name")
+	morrisPart.PartNumber = r.FormValue("part_number")
+	morrisPart.PartDescription = r.FormValue("part_description")
+	morrisPart.SuperSSNumber = r.FormValue("super_ss_number")
+	morrisPart.Weight = r.FormValue("weight")
+	morrisPart.HsCode = r.FormValue("hs_code")
+	morrisPart.RemainPartNumber = r.FormValue("remain_part_number")
+	morrisPart.Coo = r.FormValue("coo")
+	morrisPart.RefNO = r.FormValue("ref_no")
+	morrisPart.MainCategory = r.FormValue("main_category")
+	morrisPart.SubCategory = r.FormValue("sub_category")
+
+	// Process uploaded image
+	file, _, err := r.FormFile("image")
+	var imageURL string
+	if err == nil { // Image provided
+		defer file.Close()
+
+		fileBytes, err := ioutil.ReadAll(file)
+		if err != nil {
+			http.Error(w, "Error reading file content", http.StatusInternalServerError)
+			return
+		}
+
+		// Resize image if it exceeds 3MB
+		if len(fileBytes) > 3*1024*1024 {
+			img, _, err := image.Decode(bytes.NewReader(fileBytes))
+			if err != nil {
+				http.Error(w, "Error decoding image", http.StatusInternalServerError)
+				return
+			}
+
+			newImage := resize.Resize(800, 0, img, resize.Lanczos3)
+			var buf bytes.Buffer
+			err = jpeg.Encode(&buf, newImage, nil)
+			if err != nil {
+				http.Error(w, "Error encoding compressed image", http.StatusInternalServerError)
+				return
+			}
+			fileBytes = buf.Bytes()
+		}
+
+		// Upload image to AWS S3
+		sess, err := session.NewSession(&aws.Config{
+			Region: aws.String("eu-north-1"),
+			Credentials: credentials.NewStaticCredentials(
+				"AKIAWMFUPPBUFJOAZMAT",
+				"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S",
+				"",
+			),
+		})
+		if err != nil {
+			log.Printf("Failed to create AWS session: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		svc := s3.New(sess)
+		imageKey := fmt.Sprintf("MorrisPartsImages/%d.jpg", time.Now().Unix())
+		_, err = svc.PutObject(&s3.PutObjectInput{
+			Bucket: aws.String("morriuae"),
+			Key:    aws.String(imageKey),
+			Body:   bytes.NewReader(fileBytes),
+		})
+		if err != nil {
+			log.Printf("Failed to upload image to S3: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Construct imageURL
+		imageURL = fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
+	}
+
+	// Call helper function to update data
+	err = helper.UpdateMorrisParts(
+		morrisPart.ID,
+		morrisPart.Name,
+		morrisPart.PartNumber,
+		morrisPart.PartDescription,
+		morrisPart.SuperSSNumber,
+		morrisPart.Weight,
+		morrisPart.HsCode,
+		morrisPart.RemainPartNumber,
+		morrisPart.Coo,
+		morrisPart.RefNO,
+		imageURL,
+		morrisPart.MainCategory,
+		morrisPart.SubCategory,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Update successful"})
 }
