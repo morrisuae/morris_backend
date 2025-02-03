@@ -10,11 +10,19 @@ import (
 )
 
 func Initdb() {
+	// const (
+	// 	host     = "ep-lingering-brook-a255dk8x.eu-central-1.pg.koyeb.app"
+	// 	port     = 5432
+	// 	user     = "koyeb-adm"
+	// 	password = "1ITJl8VcnfHy"
+	// 	dbname   = "koyebdb"
+	// )
+
 	const (
-		host     = "ep-lingering-brook-a255dk8x.eu-central-1.pg.koyeb.app"
+		host     = "ep-soft-boat-a289jm9y.eu-central-1.pg.koyeb.app"
 		port     = 5432
 		user     = "koyeb-adm"
-		password = "1ITJl8VcnfHy"
+		password = "npg_anmKQf2Aj6yC"
 		dbname   = "koyebdb"
 	)
 
@@ -43,11 +51,18 @@ func Initdb() {
 	// created_date TIMESTAMP
 	// )`
 
-	// _, err = helper.DB.Exec(createTable)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println("Table created successfully")
+	createTable := `CREATE TABLE IF NOT EXISTS banners (
+		id SERIAL PRIMARY KEY,
+		title TEXT,
+		image TEXT,
+		created_date TIMESTAMP
+		)`
+
+	_, err = helper.DB.Exec(createTable)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Table created successfully")
 
 	// createTable := `CREATE TABLE IF NOT EXISTS banners (
 	// id SERIAL PRIMARY KEY,

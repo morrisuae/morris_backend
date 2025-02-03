@@ -513,17 +513,18 @@ func GetHomeCompanySlides() ([]models.HomeCompanySlides, error) {
 }
 
 func DeleteHomeCompanySlide(id uint) error {
-	query := `DELETE FROM home_company_slides WHERE id = ?`
-	result, err := DB.Exec(query, id)
+	result, err := DB.Exec("DELETE FROM home_company_slides WHERE id = $1", id)
 	if err != nil {
 		return err
 	}
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
+
 	if rowsAffected == 0 {
-		return errors.New("slide not found")
+		return fmt.Errorf("slide not found")
 	}
 	return nil
 }
