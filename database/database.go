@@ -51,9 +51,9 @@ func Initdb() {
 	// created_date TIMESTAMP
 	// )`
 
-	createTable := `CREATE TABLE IF NOT EXISTS banners (
+	createTable := `CREATE TABLE IF NOT EXISTS home_company_slides (
 		id SERIAL PRIMARY KEY,
-		title TEXT,
+		name TEXT,
 		image TEXT,
 		created_date TIMESTAMP
 		)`
