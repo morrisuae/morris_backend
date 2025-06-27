@@ -19,10 +19,10 @@ func Initdb() {
 	// )
 
 	const (
-		host     = "ep-soft-boat-a289jm9y.eu-central-1.pg.koyeb.app"
+		host     = "ep-icy-forest-a25cphqe.eu-central-1.pg.koyeb.app"
 		port     = 5432
 		user     = "koyeb-adm"
-		password = "npg_anmKQf2Aj6yC"
+		password = "npg_v1Nj6WPEehwS"
 		dbname   = "koyebdb"
 	)
 
