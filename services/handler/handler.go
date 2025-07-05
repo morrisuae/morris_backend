@@ -1714,3 +1714,33 @@ func UpdateMorrisParts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Update successful"})
 }
+
+func GetPartByIDHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		GetPartByID(w, r)
+	} else if r.Method == http.MethodGet {
+		GetPartByID(w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+func GetPartByID(w http.ResponseWriter, r *http.Request) {
+	// Get "id" from query params
+	id := r.URL.Query().Get("id")
+
+	if id == "" {
+		http.Error(w, "id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Call helper
+	part, err := helper.GetPartByID(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(part)
+}

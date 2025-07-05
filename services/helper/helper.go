@@ -990,6 +990,33 @@ func GetEnquiries() ([]models.EnquiresModel, error) {
 
 	return enquiriesList, nil
 }
+
+func GetPartByID(id string) (*models.MorrisParts, error) {
+	query := `
+		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
+		       remain_part_number, coo, ref_no, image, main_category, sub_category
+		FROM morrisparts
+		WHERE id = $1
+	`
+
+	row := DB.QueryRow(query, id)
+
+	var part models.MorrisParts
+	err := row.Scan(
+		&part.ID, &part.Name, &part.PartNumber, &part.PartDescription,
+		&part.SuperSSNumber, &part.Weight, &part.HsCode, &part.RemainPartNumber,
+		&part.Coo, &part.RefNO, &part.Image, &part.MainCategory, &part.SubCategory,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("part not found")
+		}
+		return nil, err
+	}
+
+	return &part, nil
+}
+
 func UpdateMorrisParts(id uint, name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category string) error {
 	// Base query
 	query := `
