@@ -1715,7 +1715,7 @@ func UpdateMorrisParts(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Update successful"})
 }
 
-func GetPartByIDHandler(w http.ResponseWriter, r *http.Request) {
+func PartByIDHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		GetPartByID(w, r)
 	} else if r.Method == http.MethodGet {
