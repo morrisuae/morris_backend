@@ -48,6 +48,8 @@ func main() {
 
 	http.Handle("/enquiries", middleware.AuthMiddleware(http.HandlerFunc(handler.EnquiryHandler)))
 
+	http.Handle("morrisparts/part", middleware.AuthMiddleware(http.HandlerFunc(handler.GetPartByIDHandler)))
+
 	// http.HandleFunc("/enquiries", handler.HandlePostEnquiry)
 	http.ListenAndServe(":8080", nil)
 
