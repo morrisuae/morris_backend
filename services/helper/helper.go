@@ -1127,3 +1127,77 @@ func UpdateMorrisParts(id uint, name, part_number, part_description, super_ss_nu
 	fmt.Println("Update Morris Parts Successful")
 	return nil
 }
+
+func GetRelatedParts(productID uint) ([]models.MorrisParts, error) {
+	// First, get the main_category and sub_category of the given product
+	var mainCategory, subCategory string
+	err := DB.QueryRow(`
+		SELECT main_category, sub_category 
+		FROM morrisparts 
+		WHERE id = $1
+	`, productID).Scan(&mainCategory, &subCategory)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("product not found")
+		}
+		return nil, err
+	}
+
+	// Now get 10 other products from the same category, excluding this product
+	query := `
+		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
+		       remain_part_number, coo, ref_no, image, images, main_category, sub_category,
+		       dimension, compatible_engine_models, available_location, price
+		FROM morrisparts
+		WHERE main_category = $1 AND sub_category = $2 AND id != $3
+		ORDER BY id ASC
+		LIMIT 10
+	`
+
+	rows, err := DB.Query(query, mainCategory, subCategory, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var parts []models.MorrisParts
+	for rows.Next() {
+		var part models.MorrisParts
+		var images pq.StringArray
+		var dimension, compatibleEngineModels, availableLocation sql.NullString
+		var price sql.NullFloat64
+
+		err := rows.Scan(
+			&part.ID, &part.Name, &part.PartNumber, &part.PartDescription, &part.SuperSSNumber,
+			&part.Weight, &part.HsCode, &part.RemainPartNumber, &part.Coo, &part.RefNO,
+			&part.Image, &images, &part.MainCategory, &part.SubCategory,
+			&dimension, &compatibleEngineModels, &availableLocation, &price,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		part.Images = []string(images)
+		if dimension.Valid {
+			part.Dimension = dimension.String
+		}
+		if compatibleEngineModels.Valid {
+			part.CompatibleEngineModels = compatibleEngineModels.String
+		}
+		if availableLocation.Valid {
+			part.AvailableLocation = availableLocation.String
+		}
+		if price.Valid {
+			part.Price = price.Float64
+		}
+
+		parts = append(parts, part)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return parts, nil
+}

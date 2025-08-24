@@ -1770,3 +1770,40 @@ func GetPartByID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(part)
 }
+func GetRelatedParts(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+
+	} else if r.Method == http.MethodGet {
+		GetRelatedPartsHandler(w, r)
+	} else if r.Method == http.MethodPut {
+
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+func GetRelatedPartsHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse product ID from query
+	productIDStr := r.URL.Query().Get("product_id")
+	if productIDStr == "" {
+		http.Error(w, "product_id is required", http.StatusBadRequest)
+		return
+	}
+
+	productID, err := strconv.Atoi(productIDStr)
+	if err != nil {
+		http.Error(w, "Invalid product_id", http.StatusBadRequest)
+		return
+	}
+
+	// Fetch related products
+	parts, err := helper.GetRelatedParts(uint(productID))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(parts)
+}
