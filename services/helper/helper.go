@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/lib/pq"
 	"morris-backend.com/main/services/models"
 )
 
@@ -391,25 +392,51 @@ func GetMorrisParts() ([]models.MorrisParts, error) {
 
 }
 
-// MorrisParts POST
-func PostMorrisParts(name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category string) (uint, error) {
+func PostMorrisParts(
+	name, partNumber, partDescription, superSSNumber, weight, hsCode,
+	remainPartNumber, coo, refNo, image, mainCategory, subCategory,
+	dimension, compatibleEngineModels, availableLocation string,
+	price float64, images []string,
+) (uint, error) {
 
 	var id uint
-
 	currentTime := time.Now()
-	err := DB.QueryRow(`
-		INSERT INTO morrisparts 
-		(name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category, created_date) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
-		RETURNING id`,
-		name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category, currentTime,
+
+	// Ensure non-nil slice for pq.Array
+	if images == nil {
+		images = []string{}
+	}
+
+	query := `
+        INSERT INTO morrisparts (
+            name, part_number, part_description, super_ss_number,
+            weight, hs_code, remain_part_number, coo, ref_no,
+            image, main_category, sub_category, dimension,
+            compatible_engine_models, available_location, price,
+            images, created_date
+        )
+        VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9,
+            $10, $11, $12, $13, $14, $15, $16,
+            $17, $18
+        )
+        RETURNING id
+    `
+
+	err := DB.QueryRow(
+		query,
+		name, partNumber, partDescription, superSSNumber,
+		weight, hsCode, remainPartNumber, coo, refNo,
+		image, mainCategory, subCategory, dimension,
+		compatibleEngineModels, availableLocation, price,
+		pq.Array(images), currentTime,
 	).Scan(&id)
+
 	if err != nil {
 		return 0, err
 	}
 
-	fmt.Println("Post Morris Parts Successful")
-
+	fmt.Println("Post Morris Parts Successful, ID:", id)
 	return id, nil
 }
 
@@ -605,10 +632,12 @@ func GetPartsByCategory(mainCategory, subCategory string) ([]models.MorrisParts,
 
 	query := `
 		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
-		       remain_part_number, coo, ref_no, image, main_category, sub_category
+		       remain_part_number, coo, ref_no, image, images, main_category, sub_category,
+		       dimension, compatible_engine_models, available_location, price
 		FROM morrisparts
 		WHERE main_category = $1 AND sub_category = $2
-		ORDER BY id ASC`
+		ORDER BY id ASC
+	`
 
 	rows, err := DB.Query(query, mainCategory, subCategory)
 	if err != nil {
@@ -619,14 +648,37 @@ func GetPartsByCategory(mainCategory, subCategory string) ([]models.MorrisParts,
 	var parts []models.MorrisParts
 	for rows.Next() {
 		var part models.MorrisParts
+		var images pq.StringArray
+		var dimension, compatibleEngineModels, availableLocation sql.NullString
+		var price sql.NullFloat64
+
 		err := rows.Scan(
 			&part.ID, &part.Name, &part.PartNumber, &part.PartDescription, &part.SuperSSNumber,
 			&part.Weight, &part.HsCode, &part.RemainPartNumber, &part.Coo, &part.RefNO,
-			&part.Image, &part.MainCategory, &part.SubCategory,
+			&part.Image, &images, &part.MainCategory, &part.SubCategory,
+			&dimension, &compatibleEngineModels, &availableLocation, &price,
 		)
 		if err != nil {
 			return nil, err
 		}
+
+		// Handle nullable fields
+		part.Images = []string(images)
+		if dimension.Valid {
+			part.Dimension = dimension.String
+		}
+		if compatibleEngineModels.Valid {
+			part.CompatibleEngineModels = compatibleEngineModels.String
+		}
+		if availableLocation.Valid {
+			part.AvailableLocation = availableLocation.String
+		}
+		if price.Valid {
+			part.Price = price.Float64
+		} else {
+			part.Price = 0 // or leave it as zero value
+		}
+
 		parts = append(parts, part)
 	}
 
@@ -636,6 +688,7 @@ func GetPartsByCategory(mainCategory, subCategory string) ([]models.MorrisParts,
 
 	return parts, nil
 }
+
 func SearchParts(partNumber string) ([]models.MorrisParts, error) {
 	if partNumber == "" {
 		return nil, errors.New("part_number is required")

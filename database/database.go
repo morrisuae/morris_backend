@@ -51,19 +51,6 @@ func Initdb() {
 	// created_date TIMESTAMP
 	// )`
 
-	// createTable := `CREATE TABLE IF NOT EXISTS home_company_slides (
-	// 	id SERIAL PRIMARY KEY,
-	// 	name TEXT,
-	// 	image TEXT,
-	// 	created_date TIMESTAMP
-	// 	)`
-
-	// _, err = helper.DB.Exec(createTable)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println("Table created successfully")
-
 	// createTable := `CREATE TABLE IF NOT EXISTS banners (
 	// id SERIAL PRIMARY KEY,
 	// image TEXT,

@@ -59,19 +59,24 @@ type SubCategory struct {
 }
 
 type MorrisParts struct {
-	ID               uint   `json:"id"`
-	Name             string `json:"name"`
-	PartNumber       string `json:"part_number"`
-	PartDescription  string `json:"part_description"`
-	SuperSSNumber    string `json:"super_ss_number"`
-	Weight           string `json:"weight"`
-	HsCode           string `json:"hs_code"`
-	RemainPartNumber string `json:"remain_part_number"`
-	Coo              string `json:"coo"`
-	RefNO            string `json:"ref_no"`
-	Image            string `json:"image"`
-	MainCategory     string `json:"main_category"`
-	SubCategory      string `json:"sub_category"`
+	ID                     uint     `json:"id"`
+	Name                   string   `json:"name"`
+	PartNumber             string   `json:"part_number"`
+	PartDescription        string   `json:"part_description"`
+	SuperSSNumber          string   `json:"super_ss_number"`
+	Weight                 string   `json:"weight"`
+	HsCode                 string   `json:"hs_code"`
+	RemainPartNumber       string   `json:"remain_part_number"`
+	Coo                    string   `json:"coo"`
+	RefNO                  string   `json:"ref_no"`
+	Image                  string   `json:"image"`
+	Images                 []string `json:"images"`
+	MainCategory           string   `json:"main_category"`
+	SubCategory            string   `json:"sub_category"`
+	Dimension              string   `json:"dimension"`
+	CompatibleEngineModels string   `json:"compatible_engine_models"`
+	AvailableLocation      string   `json:"available_location"`
+	Price                  float64  `json:"price"`
 }
 
 type HomeCompanySlides struct {

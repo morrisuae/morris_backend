@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -522,7 +523,7 @@ func GetMorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostMorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20) // 10MB max file size
+	err := r.ParseMultipartForm(20 << 20) // 20MB max file size
 	if err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
@@ -542,75 +543,99 @@ func PostMorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
 	morrisPart.RefNO = r.FormValue("ref_no")
 	morrisPart.MainCategory = r.FormValue("main_category")
 	morrisPart.SubCategory = r.FormValue("sub_category")
+	morrisPart.Dimension = r.FormValue("dimension")
+	morrisPart.CompatibleEngineModels = r.FormValue("compatible_engine_models")
+	morrisPart.AvailableLocation = r.FormValue("available_location")
 
-	// Process uploaded image
-	file, _, err := r.FormFile("image")
-	if err != nil {
-		http.Error(w, "Error uploading file", http.StatusBadRequest)
-		fmt.Println("Error uploading file:", err)
-		return
-	}
-	defer file.Close()
-
-	fileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		http.Error(w, "Error reading file content", http.StatusInternalServerError)
-		fmt.Println("Error reading file content:", err)
-		return
-	}
-
-	// Resize image if it exceeds 3MB
-	if len(fileBytes) > 3*1024*1024 {
-		img, _, err := image.Decode(bytes.NewReader(fileBytes))
-		if err != nil {
-			http.Error(w, "Error decoding image", http.StatusInternalServerError)
-			fmt.Println("Error decoding image:", err)
+	// Convert price
+	if priceVal := r.FormValue("price"); priceVal != "" {
+		if p, err := strconv.ParseFloat(priceVal, 64); err == nil {
+			morrisPart.Price = p
+		} else {
+			http.Error(w, "Invalid price format", http.StatusBadRequest)
 			return
 		}
-
-		newImage := resize.Resize(800, 0, img, resize.Lanczos3)
-		var buf bytes.Buffer
-		err = jpeg.Encode(&buf, newImage, nil)
-		if err != nil {
-			http.Error(w, "Error encoding compressed image", http.StatusInternalServerError)
-			fmt.Println("Error encoding compressed image:", err)
-			return
-		}
-		fileBytes = buf.Bytes()
 	}
 
 	// Upload image to AWS S3
 	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("eu-north-1"),
+		Region: aws.String("eu-north-1"), // Replace with your AWS region
 		Credentials: credentials.NewStaticCredentials(
-			"AKIAWMFUPPBUFJOAZMAT",
-			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S",
-			"",
-		),
+			"AKIAWMFUPPBUFJOAZMAT",                     // Replace with your AWS access key ID
+			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S", // Replace with your AWS secret access key
+			""), // Optional token, leave blank if not using
 	})
 	if err != nil {
 		log.Printf("Failed to create AWS session: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-
 	svc := s3.New(sess)
-	imageKey := fmt.Sprintf("MorrisPartsImages/%d.jpg", time.Now().Unix())
-	_, err = svc.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String("morriuae"),
-		Key:    aws.String(imageKey),
-		Body:   bytes.NewReader(fileBytes),
-	})
-	if err != nil {
-		log.Printf("Failed to upload image to S3: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+
+	// Helper function to upload image to S3
+	uploadToS3 := func(fileBytes []byte, key string) (string, error) {
+		if len(fileBytes) > 3*1024*1024 {
+			img, _, _ := image.Decode(bytes.NewReader(fileBytes))
+			newImage := resize.Resize(800, 0, img, resize.Lanczos3)
+			var buf bytes.Buffer
+			jpeg.Encode(&buf, newImage, nil)
+			fileBytes = buf.Bytes()
+		}
+		_, err := svc.PutObject(&s3.PutObjectInput{
+			Bucket: aws.String("morriuae"),
+			Key:    aws.String(key),
+			Body:   bytes.NewReader(fileBytes),
+		})
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", key), nil
 	}
 
-	// Construct imageURL assuming it's from your S3 bucket
-	imageURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
+	// Upload main image
+	if file, _, err := r.FormFile("image"); err == nil {
+		fileBytes, _ := io.ReadAll(file)
+		file.Close()
 
-	// Save part details into database
+		imageKey := fmt.Sprintf("MorrisPartsImages/%d_main.jpg", time.Now().Unix())
+		uploadedURL, err := uploadToS3(fileBytes, imageKey)
+		if err != nil {
+			log.Printf("Failed to upload main image: %v", err)
+			http.Error(w, "Main image upload failed", http.StatusInternalServerError)
+			return
+		}
+		morrisPart.Image = uploadedURL
+	}
+
+	// Upload multiple images
+	files := r.MultipartForm.File["images[]"]
+	if len(files) == 0 {
+		files = r.MultipartForm.File["images"] // fallback
+	}
+
+	for _, f := range files {
+		src, err := f.Open()
+		if err != nil {
+			continue
+		}
+		fileBytes, _ := io.ReadAll(src)
+		src.Close()
+
+		imageKey := fmt.Sprintf("MorrisPartsImages/%d_%s", time.Now().UnixNano(), f.Filename)
+		uploadedURL, err := uploadToS3(fileBytes, imageKey)
+		if err != nil {
+			log.Printf("Failed to upload image %s: %v", f.Filename, err)
+			continue
+		}
+		morrisPart.Images = append(morrisPart.Images, uploadedURL)
+	}
+
+	// Ensure images array is not null in JSON
+	if morrisPart.Images == nil {
+		morrisPart.Images = []string{}
+	}
+
+	// Save to DB
 	id, err := helper.PostMorrisParts(
 		morrisPart.Name,
 		morrisPart.PartNumber,
@@ -621,9 +646,14 @@ func PostMorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
 		morrisPart.RemainPartNumber,
 		morrisPart.Coo,
 		morrisPart.RefNO,
-		imageURL,
+		morrisPart.Image,
 		morrisPart.MainCategory,
 		morrisPart.SubCategory,
+		morrisPart.Dimension,
+		morrisPart.CompatibleEngineModels,
+		morrisPart.AvailableLocation,
+		morrisPart.Price,
+		morrisPart.Images,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -632,7 +662,7 @@ func PostMorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
 
 	morrisPart.ID = id
 
-	// Return response as JSON
+	// Return JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(morrisPart)
 }
@@ -1116,24 +1146,20 @@ func GetSubCategoriesByCategoryNameAndTypeHandler(w http.ResponseWriter, r *http
 }
 
 func GetPartsByCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters
 	mainCategory := r.URL.Query().Get("main_category")
 	subCategory := r.URL.Query().Get("sub_category")
 
-	// Validate query parameters
 	if mainCategory == "" || subCategory == "" {
 		http.Error(w, "Both main_category and sub_category are required", http.StatusBadRequest)
 		return
 	}
 
-	// Fetch data using the helper function
 	parts, err := helper.GetPartsByCategory(mainCategory, subCategory)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Send response as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(parts)
 }
