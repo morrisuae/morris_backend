@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -1054,7 +1055,8 @@ func GetEnquiries() ([]models.EnquiresModel, error) {
 func GetPartByID(id string) (*models.MorrisParts, error) {
 	query := `
 		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
-		       remain_part_number, coo, ref_no, image, main_category, sub_category
+		       remain_part_number, coo, ref_no, image, images, main_category, sub_category,
+		       dimension, compatible_engine_models, available_location, price
 		FROM morrisparts
 		WHERE id = $1
 	`
@@ -1062,16 +1064,29 @@ func GetPartByID(id string) (*models.MorrisParts, error) {
 	row := DB.QueryRow(query, id)
 
 	var part models.MorrisParts
+	var images sql.NullString // store JSON or comma-separated images
+
 	err := row.Scan(
 		&part.ID, &part.Name, &part.PartNumber, &part.PartDescription,
 		&part.SuperSSNumber, &part.Weight, &part.HsCode, &part.RemainPartNumber,
-		&part.Coo, &part.RefNO, &part.Image, &part.MainCategory, &part.SubCategory,
+		&part.Coo, &part.RefNO, &part.Image, &images,
+		&part.MainCategory, &part.SubCategory, &part.Dimension,
+		&part.CompatibleEngineModels, &part.AvailableLocation, &part.Price,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("part not found")
 		}
 		return nil, err
+	}
+
+	// Convert images string to []string
+	if images.Valid && images.String != "" {
+		// if stored as JSON array
+		if err := json.Unmarshal([]byte(images.String), &part.Images); err != nil {
+			// fallback if comma-separated
+			part.Images = strings.Split(images.String, ",")
+		}
 	}
 
 	return &part, nil
