@@ -1151,7 +1151,7 @@ func UpdateMorrisParts(
 }
 
 func GetRelatedParts(productID uint) ([]models.MorrisParts, error) {
-	// First, get the main_category and sub_category of the given product
+	// Step 1: Get main_category and sub_category of the given product
 	var mainCategory, subCategory string
 	err := DB.QueryRow(`
 		SELECT main_category, sub_category 
@@ -1166,7 +1166,7 @@ func GetRelatedParts(productID uint) ([]models.MorrisParts, error) {
 		return nil, err
 	}
 
-	// Now get 10 other products from the same category, excluding this product
+	// Step 2: Get 10 related products in the same category, excluding this product
 	query := `
 		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
 		       remain_part_number, coo, ref_no, image, images, main_category, sub_category,
@@ -1186,7 +1186,7 @@ func GetRelatedParts(productID uint) ([]models.MorrisParts, error) {
 	var parts []models.MorrisParts
 	for rows.Next() {
 		var part models.MorrisParts
-		var images pq.StringArray
+		var images sql.NullString
 		var dimension, compatibleEngineModels, availableLocation sql.NullString
 		var price sql.NullFloat64
 
@@ -1200,7 +1200,17 @@ func GetRelatedParts(productID uint) ([]models.MorrisParts, error) {
 			return nil, err
 		}
 
-		part.Images = []string(images)
+		// Parse images safely
+		part.Images = []string{}
+		if images.Valid && images.String != "" {
+			// Try JSON unmarshal first
+			if err := json.Unmarshal([]byte(images.String), &part.Images); err != nil {
+				// If not JSON, fallback to comma-separated
+				part.Images = strings.Split(images.String, ",")
+			}
+		}
+
+		// Handle nullable fields
 		if dimension.Valid {
 			part.Dimension = dimension.String
 		}
