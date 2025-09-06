@@ -1064,14 +1064,18 @@ func GetPartByID(id string) (*models.MorrisParts, error) {
 	row := DB.QueryRow(query, id)
 
 	var part models.MorrisParts
-	var images sql.NullString // store JSON or comma-separated images
+	var images sql.NullString
+	var dimension sql.NullString
+	var compatibleEngineModels sql.NullString
+	var availableLocation sql.NullString
+	var price sql.NullFloat64 // ✅ handle NULL price
 
 	err := row.Scan(
 		&part.ID, &part.Name, &part.PartNumber, &part.PartDescription,
 		&part.SuperSSNumber, &part.Weight, &part.HsCode, &part.RemainPartNumber,
 		&part.Coo, &part.RefNO, &part.Image, &images,
-		&part.MainCategory, &part.SubCategory, &part.Dimension,
-		&part.CompatibleEngineModels, &part.AvailableLocation, &part.Price,
+		&part.MainCategory, &part.SubCategory,
+		&dimension, &compatibleEngineModels, &availableLocation, &price,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1080,13 +1084,26 @@ func GetPartByID(id string) (*models.MorrisParts, error) {
 		return nil, err
 	}
 
-	// Convert images string to []string
+	// Handle nullable strings
 	if images.Valid && images.String != "" {
-		// if stored as JSON array
 		if err := json.Unmarshal([]byte(images.String), &part.Images); err != nil {
-			// fallback if comma-separated
 			part.Images = strings.Split(images.String, ",")
 		}
+	}
+
+	if dimension.Valid {
+		part.Dimension = dimension.String
+	}
+	if compatibleEngineModels.Valid {
+		part.CompatibleEngineModels = compatibleEngineModels.String
+	}
+	if availableLocation.Valid {
+		part.AvailableLocation = availableLocation.String
+	}
+
+	// Handle nullable price
+	if price.Valid {
+		part.Price = price.Float64
 	}
 
 	return &part, nil
