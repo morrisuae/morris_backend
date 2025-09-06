@@ -1113,43 +1113,34 @@ func UpdateMorrisParts(
 	id uint,
 	name, partNumber, partDescription, superSSNumber, weight, hsCode, remainPartNumber,
 	coo, refNo string,
-	images []string, // Multiple images
+	image string, // single main image
+	images []string, // multiple images
 	mainCategory, subCategory, dimension, compatibleEngineModels, availableLocation string,
 	price float64,
 ) error {
-	// Convert []string to JSON for storage
+	// Marshal multiple images to JSON
 	imagesJSON, err := json.Marshal(images)
 	if err != nil {
 		return fmt.Errorf("failed to marshal images: %w", err)
 	}
 
-	// Build query - cast to jsonb
 	query := `
 		UPDATE morrisparts 
-		SET name = $1, 
-		    part_number = $2, 
-		    part_description = $3, 
-		    super_ss_number = $4, 
-		    weight = $5, 
-		    hs_code = $6, 
-		    remain_part_number = $7, 
-		    coo = $8, 
-		    ref_no = $9, 
-		    images = $10::jsonb, 
-		    main_category = $11, 
-		    sub_category = $12,
-		    dimension = $13,
-		    compatible_engine_models = $14,
-		    available_location = $15,
-		    price = $16
-		WHERE id = $17`
+		SET name=$1, part_number=$2, part_description=$3, super_ss_number=$4,
+		    weight=$5, hs_code=$6, remain_part_number=$7, coo=$8, ref_no=$9,
+		    image=$10, images=$11::jsonb,
+		    main_category=$12, sub_category=$13, dimension=$14,
+		    compatible_engine_models=$15, available_location=$16, price=$17
+		WHERE id=$18
+	`
 
-	// Execute update
 	_, err = DB.Exec(query,
-		name, partNumber, partDescription, superSSNumber, weight, hsCode,
-		remainPartNumber, coo, refNo, string(imagesJSON),
-		mainCategory, subCategory, dimension, compatibleEngineModels,
-		availableLocation, price, id,
+		name, partNumber, partDescription, superSSNumber,
+		weight, hsCode, remainPartNumber, coo, refNo,
+		image, string(imagesJSON),
+		mainCategory, subCategory, dimension,
+		compatibleEngineModels, availableLocation, price,
+		id,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update morris parts: %w", err)
