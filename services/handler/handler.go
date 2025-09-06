@@ -1625,7 +1625,7 @@ func GetEnquiries(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateMorrisParts(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20) // 10MB max file size
+	err := r.ParseMultipartForm(50 << 20) // Allow larger form size for multiple images
 	if err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
@@ -1641,6 +1641,7 @@ func UpdateMorrisParts(w http.ResponseWriter, r *http.Request) {
 	}
 	morrisPart.ID = uint(id)
 
+	// Text fields
 	morrisPart.Name = r.FormValue("name")
 	morrisPart.PartNumber = r.FormValue("part_number")
 	morrisPart.PartDescription = r.FormValue("part_description")
@@ -1652,70 +1653,82 @@ func UpdateMorrisParts(w http.ResponseWriter, r *http.Request) {
 	morrisPart.RefNO = r.FormValue("ref_no")
 	morrisPart.MainCategory = r.FormValue("main_category")
 	morrisPart.SubCategory = r.FormValue("sub_category")
+	morrisPart.Dimension = r.FormValue("dimension")
+	morrisPart.CompatibleEngineModels = r.FormValue("compatible_engine_models")
+	morrisPart.AvailableLocation = r.FormValue("available_location")
 
-	// Process uploaded image
-	file, _, err := r.FormFile("image")
-	var imageURL string
-	if err == nil { // Image provided
+	// Price
+	if priceStr := r.FormValue("price"); priceStr != "" {
+		if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
+			morrisPart.Price = price
+		}
+	}
+
+	// AWS session
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("eu-north-1"),
+		Credentials: credentials.NewStaticCredentials(
+			"AKIAWMFUPPBUFJOAZMAT",
+			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S",
+			"",
+		),
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	svc := s3.New(sess)
+
+	// Multiple image uploads
+	files := r.MultipartForm.File["images"] // Expecting "images"[] in form
+	for _, fileHeader := range files {
+		file, err := fileHeader.Open()
+		if err != nil {
+			log.Printf("Failed to open file: %v", err)
+			continue
+		}
 		defer file.Close()
 
 		fileBytes, err := ioutil.ReadAll(file)
 		if err != nil {
-			http.Error(w, "Error reading file content", http.StatusInternalServerError)
-			return
+			log.Printf("Error reading file: %v", err)
+			continue
 		}
 
-		// Resize image if it exceeds 3MB
+		// Resize if > 3MB
 		if len(fileBytes) > 3*1024*1024 {
 			img, _, err := image.Decode(bytes.NewReader(fileBytes))
 			if err != nil {
-				http.Error(w, "Error decoding image", http.StatusInternalServerError)
-				return
+				log.Printf("Error decoding image: %v", err)
+				continue
 			}
-
 			newImage := resize.Resize(800, 0, img, resize.Lanczos3)
 			var buf bytes.Buffer
-			err = jpeg.Encode(&buf, newImage, nil)
-			if err != nil {
-				http.Error(w, "Error encoding compressed image", http.StatusInternalServerError)
-				return
+			if err := jpeg.Encode(&buf, newImage, nil); err != nil {
+				log.Printf("Error encoding resized image: %v", err)
+				continue
 			}
 			fileBytes = buf.Bytes()
 		}
 
-		// Upload image to AWS S3
-		sess, err := session.NewSession(&aws.Config{
-			Region: aws.String("eu-north-1"),
-			Credentials: credentials.NewStaticCredentials(
-				"AKIAWMFUPPBUFJOAZMAT",
-				"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S",
-				"",
-			),
-		})
-		if err != nil {
-			log.Printf("Failed to create AWS session: %v", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		svc := s3.New(sess)
-		imageKey := fmt.Sprintf("MorrisPartsImages/%d.jpg", time.Now().Unix())
+		// Upload to S3
+		imageKey := fmt.Sprintf("MorrisPartsImages/%d_%s", time.Now().UnixNano(), fileHeader.Filename)
 		_, err = svc.PutObject(&s3.PutObjectInput{
 			Bucket: aws.String("morriuae"),
 			Key:    aws.String(imageKey),
 			Body:   bytes.NewReader(fileBytes),
 		})
 		if err != nil {
-			log.Printf("Failed to upload image to S3: %v", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
+			log.Printf("Failed to upload to S3: %v", err)
+			continue
 		}
 
-		// Construct imageURL
-		imageURL = fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
+		imageURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", imageKey)
+		morrisPart.Images = append(morrisPart.Images, imageURL)
 	}
 
-	// Call helper function to update data
+	// Update database
 	err = helper.UpdateMorrisParts(
 		morrisPart.ID,
 		morrisPart.Name,
@@ -1727,16 +1740,20 @@ func UpdateMorrisParts(w http.ResponseWriter, r *http.Request) {
 		morrisPart.RemainPartNumber,
 		morrisPart.Coo,
 		morrisPart.RefNO,
-		imageURL,
+		morrisPart.Images,
 		morrisPart.MainCategory,
 		morrisPart.SubCategory,
+		morrisPart.Dimension,
+		morrisPart.CompatibleEngineModels,
+		morrisPart.AvailableLocation,
+		morrisPart.Price,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Return response as JSON
+	// Return success
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Update successful"})
 }

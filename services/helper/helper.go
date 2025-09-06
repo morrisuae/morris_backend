@@ -2,6 +2,7 @@ package helper
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -648,22 +649,28 @@ func GetPartsByCategory(mainCategory, subCategory string) ([]models.MorrisParts,
 	var parts []models.MorrisParts
 	for rows.Next() {
 		var part models.MorrisParts
-		var images pq.StringArray
+		var imagesJSON []byte // for JSONB
 		var dimension, compatibleEngineModels, availableLocation sql.NullString
 		var price sql.NullFloat64
 
 		err := rows.Scan(
 			&part.ID, &part.Name, &part.PartNumber, &part.PartDescription, &part.SuperSSNumber,
 			&part.Weight, &part.HsCode, &part.RemainPartNumber, &part.Coo, &part.RefNO,
-			&part.Image, &images, &part.MainCategory, &part.SubCategory,
+			&part.Image, &imagesJSON, &part.MainCategory, &part.SubCategory,
 			&dimension, &compatibleEngineModels, &availableLocation, &price,
 		)
 		if err != nil {
 			return nil, err
 		}
 
+		// Decode JSONB into []string
+		if len(imagesJSON) > 0 {
+			if err := json.Unmarshal(imagesJSON, &part.Images); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal images JSON: %w", err)
+			}
+		}
+
 		// Handle nullable fields
-		part.Images = []string(images)
 		if dimension.Valid {
 			part.Dimension = dimension.String
 		}
@@ -676,7 +683,7 @@ func GetPartsByCategory(mainCategory, subCategory string) ([]models.MorrisParts,
 		if price.Valid {
 			part.Price = price.Float64
 		} else {
-			part.Price = 0 // or leave it as zero value
+			part.Price = 0
 		}
 
 		parts = append(parts, part)
@@ -1070,8 +1077,21 @@ func GetPartByID(id string) (*models.MorrisParts, error) {
 	return &part, nil
 }
 
-func UpdateMorrisParts(id uint, name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category string) error {
-	// Base query
+func UpdateMorrisParts(
+	id uint,
+	name, partNumber, partDescription, superSSNumber, weight, hsCode, remainPartNumber,
+	coo, refNo string,
+	images []string, // Multiple images
+	mainCategory, subCategory, dimension, compatibleEngineModels, availableLocation string,
+	price float64,
+) error {
+	// Convert []string to JSON for storage
+	imagesJSON, err := json.Marshal(images)
+	if err != nil {
+		return fmt.Errorf("failed to marshal images: %w", err)
+	}
+
+	// Build query - cast to jsonb
 	query := `
 		UPDATE morrisparts 
 		SET name = $1, 
@@ -1083,48 +1103,27 @@ func UpdateMorrisParts(id uint, name, part_number, part_description, super_ss_nu
 		    remain_part_number = $7, 
 		    coo = $8, 
 		    ref_no = $9, 
-		    main_category = $10, 
-		    sub_category = $11`
-	params := []interface{}{
-		name, part_number, part_description, super_ss_number, weight, hs_code, remain_part_number, coo, ref_no, main_category, sub_category,
-	}
+		    images = $10::jsonb, 
+		    main_category = $11, 
+		    sub_category = $12,
+		    dimension = $13,
+		    compatible_engine_models = $14,
+		    available_location = $15,
+		    price = $16
+		WHERE id = $17`
 
-	// Dynamically include the image if provided
-	if image != "" {
-		query += `, image = $12`
-		params = append(params, image)
-	}
-
-	// Add the WHERE clause and the id parameter
-	query += ` WHERE id = $13`
-	params = append(params, id)
-
-	// If image is not provided, adjust the placeholder numbering
-	if image == "" {
-		query = `
-		UPDATE morrisparts 
-		SET name = $1, 
-		    part_number = $2, 
-		    part_description = $3, 
-		    super_ss_number = $4, 
-		    weight = $5, 
-		    hs_code = $6, 
-		    remain_part_number = $7, 
-		    coo = $8, 
-		    ref_no = $9, 
-		    main_category = $10, 
-		    sub_category = $11 
-		WHERE id = $12`
-		params = append(params[:11], id) // Exclude image, append ID at the correct index
-	}
-
-	// Execute the query
-	_, err := DB.Exec(query, params...)
+	// Execute update
+	_, err = DB.Exec(query,
+		name, partNumber, partDescription, superSSNumber, weight, hsCode,
+		remainPartNumber, coo, refNo, string(imagesJSON),
+		mainCategory, subCategory, dimension, compatibleEngineModels,
+		availableLocation, price, id,
+	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update morris parts: %w", err)
 	}
 
-	fmt.Println("Update Morris Parts Successful")
+	fmt.Println("✅ Update Morris Parts Successful")
 	return nil
 }
 
