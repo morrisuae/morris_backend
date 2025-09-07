@@ -1317,6 +1317,30 @@ func PostEngine(e models.Engine) (uint, error) {
 	fmt.Println("Post Engine Successful, ID:", id)
 	return id, nil
 }
+func PostCatalogue(c models.Catalogue) (uint, error) {
+	var id uint
+	query := `
+		INSERT INTO catalogues (
+			title, part_number, description, main_category, image, pdf_url, created_date
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7
+		)
+		RETURNING id
+	`
+
+	err := DB.QueryRow(
+		query,
+		c.Title, c.PartNumber, c.Description, c.MainCategory,
+		c.Image, c.PdfURL, c.CreatedDate,
+	).Scan(&id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post Catalogue Successful, ID:", id)
+	return id, nil
+}
 
 func GetEnginesByMainCategory(category string) ([]models.Engine, error) {
 	rows, err := DB.Query(`
@@ -1369,4 +1393,85 @@ func GetEnginesByMainCategory(category string) ([]models.Engine, error) {
 	}
 
 	return engines, nil
+}
+
+func GetCatalogues() ([]models.Catalogue, error) {
+	rows, err := DB.Query(`
+		SELECT 
+			id, 
+			title, 
+			part_number, 
+			description, 
+			main_category, 
+			image, 
+			pdf_url, 
+			created_date
+		FROM catalogues
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var catalogues []models.Catalogue
+	for rows.Next() {
+		var c models.Catalogue
+		err := rows.Scan(
+			&c.ID,
+			&c.Title,
+			&c.PartNumber,
+			&c.Description,
+			&c.MainCategory,
+			&c.Image,
+			&c.PdfURL,
+			&c.CreatedDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+		catalogues = append(catalogues, c)
+	}
+
+	fmt.Println("Get Catalogues Successful")
+	return catalogues, nil
+}
+func GetCataloguesByMainCategory(category string) ([]models.Catalogue, error) {
+	rows, err := DB.Query(`
+		SELECT 
+			id, 
+			title, 
+			part_number, 
+			description, 
+			main_category, 
+			image, 
+			pdf_url, 
+			created_date
+		FROM catalogues
+		WHERE main_category = $1
+	`, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var catalogues []models.Catalogue
+	for rows.Next() {
+		var c models.Catalogue
+		err := rows.Scan(
+			&c.ID,
+			&c.Title,
+			&c.PartNumber,
+			&c.Description,
+			&c.MainCategory,
+			&c.Image,
+			&c.PdfURL,
+			&c.CreatedDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+		catalogues = append(catalogues, c)
+	}
+
+	return catalogues, nil
 }

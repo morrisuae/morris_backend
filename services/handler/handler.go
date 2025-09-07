@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -1995,6 +1996,143 @@ func EngineHandler(w http.ResponseWriter, r *http.Request) {
 		PostEngine(w, r)
 	} else if r.Method == http.MethodGet {
 		GetEngines(w, r)
+	} else if r.Method == http.MethodPut {
+
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func PostCatalogue(w http.ResponseWriter, r *http.Request) {
+	// Limit multipart form size
+	err := r.ParseMultipartForm(20 << 20) // 20MB max
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	var catalogue models.Catalogue
+	catalogue.Title = r.FormValue("title")
+	catalogue.PartNumber = r.FormValue("part_number")
+	catalogue.Description = r.FormValue("description")
+	catalogue.MainCategory = r.FormValue("main_category")
+	catalogue.CreatedDate = time.Now()
+
+	// AWS S3 session
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("eu-north-1"),
+		Credentials: credentials.NewStaticCredentials(
+			"AKIAWMFUPPBUFJOAZMAT",
+			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S",
+			"",
+		),
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, "AWS session error", http.StatusInternalServerError)
+		return
+	}
+
+	svc := s3.New(sess)
+	uploadToS3 := func(fileBytes []byte, key string, contentType string) (string, error) {
+		_, err := svc.PutObject(&s3.PutObjectInput{
+			Bucket:      aws.String("morriuae"),
+			Key:         aws.String(key),
+			Body:        bytes.NewReader(fileBytes),
+			ContentType: aws.String(contentType),
+		})
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", key), nil
+	}
+
+	// Upload image (optional)
+	if file, _, err := r.FormFile("image"); err == nil {
+		fileBytes, err := io.ReadAll(file)
+		file.Close()
+		if err != nil {
+			http.Error(w, "Failed to read image file", http.StatusInternalServerError)
+			return
+		}
+
+		imageKey := fmt.Sprintf("CatalogueImages/%d_main.jpg", time.Now().Unix())
+		uploadedURL, err := uploadToS3(fileBytes, imageKey, http.DetectContentType(fileBytes))
+		if err != nil {
+			http.Error(w, "Image upload failed", http.StatusInternalServerError)
+			return
+		}
+		catalogue.Image = uploadedURL
+	}
+
+	// Upload PDF (optional)
+	file, header, err := r.FormFile("pdf_url")
+	if err != nil {
+		log.Printf("No PDF uploaded or error reading file: %v", err)
+	} else {
+		defer file.Close()
+		fileBytes, err := io.ReadAll(file)
+		if err != nil {
+			http.Error(w, "Failed to read PDF file", http.StatusInternalServerError)
+			return
+		}
+
+		if strings.ToLower(filepath.Ext(header.Filename)) != ".pdf" {
+			http.Error(w, "Only PDF files are allowed", http.StatusBadRequest)
+			return
+		}
+
+		pdfKey := fmt.Sprintf("CataloguePDFs/%d_file.pdf", time.Now().Unix())
+		uploadedURL, err := uploadToS3(fileBytes, pdfKey, "application/pdf")
+		if err != nil {
+			http.Error(w, "PDF upload failed", http.StatusInternalServerError)
+			return
+		}
+		catalogue.PdfURL = uploadedURL
+	}
+
+	// Save to DB
+	id, err := helper.PostCatalogue(catalogue)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	catalogue.ID = id
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(catalogue)
+}
+
+func GetCatalogues(w http.ResponseWriter, r *http.Request) {
+	mainCategory := r.URL.Query().Get("main_category")
+
+	var catalogues []models.Catalogue
+	var err error
+
+	if mainCategory != "" {
+		// Fetch only catalogues with this main_category
+		catalogues, err = helper.GetCataloguesByMainCategory(mainCategory)
+	} else {
+		// Fetch all catalogues
+		catalogues, err = helper.GetCatalogues()
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(catalogues)
+}
+
+func CatalogeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostCatalogue(w, r)
+	} else if r.Method == http.MethodGet {
+		GetCatalogues(w, r)
 	} else if r.Method == http.MethodPut {
 
 	} else if r.Method == http.MethodDelete {

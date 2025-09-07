@@ -54,6 +54,8 @@ func main() {
 
 	http.Handle("/engines", middleware.AuthMiddleware(http.HandlerFunc(handler.EngineHandler)))
 
+	http.Handle("/catalogues", middleware.AuthMiddleware(http.HandlerFunc(handler.CatalogeHandler)))
+
 	http.ListenAndServe(":8080", nil)
 
 }

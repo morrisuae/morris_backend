@@ -112,3 +112,14 @@ type Engine struct {
 	MainCategory      string    `json:"main_category"`
 	CreatedDate       time.Time `json:"created_date"`
 }
+
+type Catalogue struct {
+	ID           uint      `json:"id"`
+	Title        string    `json:"title"`
+	PartNumber   string    `json:"part_number"`
+	Description  string    `json:"description"`
+	MainCategory string    `json:"main_category"`
+	Image        string    `json:"image"`
+	PdfURL       string    `json:"pdf_url"`
+	CreatedDate  time.Time `json:"created_date"`
+}
