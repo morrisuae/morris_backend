@@ -2141,3 +2141,57 @@ func CatalogeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 	}
 }
+
+func EngineHandlerByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+
+	} else if r.Method == http.MethodGet {
+		GetEnginesByID(w, r)
+	} else if r.Method == http.MethodPut {
+
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+func GetEnginesByID(w http.ResponseWriter, r *http.Request) {
+	idParam := r.URL.Query().Get("id")
+	mainCategory := r.URL.Query().Get("main_category")
+
+	if idParam != "" {
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			http.Error(w, "Invalid id", http.StatusBadRequest)
+			return
+		}
+		engine, err := helper.GetEngineByID(uint(id))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if engine == nil {
+			http.Error(w, "Engine not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(engine)
+		return
+	}
+
+	var engines []models.Engine
+	var err error
+	if mainCategory != "" {
+		engines, err = helper.GetEnginesByMainCategory(mainCategory)
+	} else {
+		engines, err = helper.GetEngines()
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(engines)
+}

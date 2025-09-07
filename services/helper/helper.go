@@ -1528,3 +1528,51 @@ func GetCataloguesByMainCategory(category string) ([]models.Catalogue, error) {
 
 	return catalogues, nil
 }
+
+func GetEngineByID(id uint) (*models.Engine, error) {
+	row := DB.QueryRow(`
+		SELECT 
+			id, 
+			name, 
+			part_number, 
+			hz, 
+			ep_or_ind, 
+			weight, 
+			coo, 
+			image, 
+			description, 
+			available_location, 
+			kva, 
+			specification_url, 
+			main_category, 
+			created_date
+		FROM engines
+		WHERE id = $1
+	`, id) // ✅ Postgres placeholder
+
+	var e models.Engine
+	err := row.Scan(
+		&e.ID,
+		&e.Name,
+		&e.PartNumber,
+		&e.Hz,
+		&e.EpOrInd,
+		&e.Weight,
+		&e.Coo,
+		&e.Image,
+		&e.Description,
+		&e.AvailableLocation,
+		&e.KVA,
+		&e.SpecificationURL,
+		&e.MainCategory,
+		&e.CreatedDate,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Not found
+		}
+		return nil, err
+	}
+
+	return &e, nil
+}
