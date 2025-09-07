@@ -354,8 +354,25 @@ func GetCategory() ([]models.Category, error) {
 
 func GetMorrisParts() ([]models.MorrisParts, error) {
 	rows, err := DB.Query(`
-		SELECT id, name, part_number, part_description, super_ss_number, weight, 
-		       hs_code, remain_part_number, coo, ref_no, image, main_category, sub_category 
+		SELECT 
+			id, 
+			name, 
+			part_number, 
+			part_description, 
+			super_ss_number, 
+			weight, 
+			hs_code, 
+			remain_part_number, 
+			coo, 
+			ref_no, 
+			image, 
+			images, 
+			main_category, 
+			sub_category,
+			dimension,
+			compatible_engine_models,
+			available_location,
+			price
 		FROM morrisparts
 	`)
 	if err != nil {
@@ -366,6 +383,11 @@ func GetMorrisParts() ([]models.MorrisParts, error) {
 	var morrisPartsList []models.MorrisParts
 	for rows.Next() {
 		var part models.MorrisParts
+
+		// Nullable columns
+		var imagesString, dimension, compatibleEngines, availableLocation sql.NullString
+		var price sql.NullFloat64
+
 		err := rows.Scan(
 			&part.ID,
 			&part.Name,
@@ -378,19 +400,50 @@ func GetMorrisParts() ([]models.MorrisParts, error) {
 			&part.Coo,
 			&part.RefNO,
 			&part.Image,
+			&imagesString,
 			&part.MainCategory,
 			&part.SubCategory,
+			&dimension,
+			&compatibleEngines,
+			&availableLocation,
+			&price,
 		)
 		if err != nil {
 			return nil, err
 		}
+
+		// Convert images
+		if imagesString.Valid && imagesString.String != "" {
+			if strings.HasPrefix(imagesString.String, "[") {
+				_ = json.Unmarshal([]byte(imagesString.String), &part.Images)
+			} else {
+				part.Images = strings.Split(imagesString.String, ",")
+			}
+		}
+
+		// Assign nullable values
+		if dimension.Valid {
+			part.Dimension = dimension.String
+		}
+		if compatibleEngines.Valid {
+			part.CompatibleEngineModels = compatibleEngines.String
+		}
+		if availableLocation.Valid {
+			part.AvailableLocation = availableLocation.String
+		}
+		if price.Valid {
+			part.Price = price.Float64
+		}
+
 		morrisPartsList = append(morrisPartsList, part)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	fmt.Println("Get Morris Parts Successful")
-
 	return morrisPartsList, nil
-
 }
 
 func PostMorrisParts(
