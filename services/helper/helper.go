@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lib/pq"
 	"morris-backend.com/main/services/models"
 )
 
@@ -398,15 +397,21 @@ func PostMorrisParts(
 	name, partNumber, partDescription, superSSNumber, weight, hsCode,
 	remainPartNumber, coo, refNo, image, mainCategory, subCategory,
 	dimension, compatibleEngineModels, availableLocation string,
-	price float64, images []string,
+	price float64, images []string, DB *sql.DB,
 ) (uint, error) {
 
 	var id uint
 	currentTime := time.Now()
 
-	// Ensure non-nil slice for pq.Array
+	// Ensure non-nil slice
 	if images == nil {
 		images = []string{}
+	}
+
+	// Convert Go slice to JSON for PostgreSQL JSONB column
+	imagesJSON, err := json.Marshal(images)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal images: %w", err)
 	}
 
 	query := `
@@ -425,17 +430,17 @@ func PostMorrisParts(
         RETURNING id
     `
 
-	err := DB.QueryRow(
+	err = DB.QueryRow(
 		query,
 		name, partNumber, partDescription, superSSNumber,
 		weight, hsCode, remainPartNumber, coo, refNo,
 		image, mainCategory, subCategory, dimension,
 		compatibleEngineModels, availableLocation, price,
-		pq.Array(images), currentTime,
+		imagesJSON, currentTime,
 	).Scan(&id)
 
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to insert morris part: %w", err)
 	}
 
 	fmt.Println("Post Morris Parts Successful, ID:", id)

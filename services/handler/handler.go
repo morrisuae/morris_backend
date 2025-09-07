@@ -655,7 +655,13 @@ func PostMorrisPartsHandler(w http.ResponseWriter, r *http.Request) {
 		morrisPart.AvailableLocation,
 		morrisPart.Price,
 		morrisPart.Images,
+		helper.DB, // <-- Pass your DB instance here
 	)
+	if err != nil {
+		fmt.Println("Error inserting Morris Part:", err)
+		return
+	}
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
