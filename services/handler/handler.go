@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -1863,4 +1864,136 @@ func GetRelatedPartsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(parts)
+}
+
+func GetEngines(w http.ResponseWriter, r *http.Request) {
+	mainCategory := r.URL.Query().Get("main_category")
+
+	var engines []models.Engine
+	var err error
+
+	if mainCategory != "" {
+		// ✅ Fetch only engines with this main_category
+		engines, err = helper.GetEnginesByMainCategory(mainCategory)
+	} else {
+		// ✅ Fetch all engines
+		engines, err = helper.GetEngines()
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(engines)
+}
+
+func PostEngine(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(20 << 20) // 20MB max
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	var engine models.Engine
+	engine.Name = r.FormValue("name")
+	engine.PartNumber = r.FormValue("part_number")
+	engine.Hz = r.FormValue("hz")
+	engine.EpOrInd = r.FormValue("ep_or_ind")
+	engine.Weight = r.FormValue("weight")
+	engine.Coo = r.FormValue("coo")
+	engine.Description = r.FormValue("description")
+	engine.AvailableLocation = r.FormValue("available_location")
+	engine.KVA = r.FormValue("kva")
+	engine.MainCategory = r.FormValue("main_category") // ✅ NEW FIELD
+	engine.CreatedDate = time.Now()
+
+	// AWS S3 session
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("eu-north-1"),
+		Credentials: credentials.NewStaticCredentials(
+			"AKIAWMFUPPBUFJOAZMAT",                     // Replace with your AWS access key ID
+			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S", // Replace with your AWS secret access key
+			"",
+		),
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, "AWS session error", http.StatusInternalServerError)
+		return
+	}
+
+	svc := s3.New(sess)
+
+	uploadToS3 := func(fileBytes []byte, key string) (string, error) {
+		_, err := svc.PutObject(&s3.PutObjectInput{
+			Bucket:      aws.String("morriuae"),
+			Key:         aws.String(key),
+			Body:        bytes.NewReader(fileBytes),
+			ContentType: aws.String(http.DetectContentType(fileBytes)),
+		})
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", key), nil
+	}
+
+	// Upload image (optional)
+	if file, _, err := r.FormFile("image"); err == nil {
+		fileBytes, _ := io.ReadAll(file)
+		file.Close()
+
+		imageKey := fmt.Sprintf("EngineImages/%d_main.jpg", time.Now().Unix())
+		uploadedURL, err := uploadToS3(fileBytes, imageKey)
+		if err != nil {
+			http.Error(w, "Image upload failed", http.StatusInternalServerError)
+			return
+		}
+		engine.Image = uploadedURL
+	}
+
+	// Upload Specification PDF (optional)
+	if file, header, err := r.FormFile("specification_pdf"); err == nil {
+		defer file.Close()
+		fileBytes, _ := io.ReadAll(file)
+
+		if filepath.Ext(header.Filename) != ".pdf" {
+			http.Error(w, "Only PDF files are allowed for specification", http.StatusBadRequest)
+			return
+		}
+
+		pdfKey := fmt.Sprintf("EngineSpecifications/%d_spec.pdf", time.Now().Unix())
+		uploadedURL, err := uploadToS3(fileBytes, pdfKey)
+		if err != nil {
+			http.Error(w, "Specification PDF upload failed", http.StatusInternalServerError)
+			return
+		}
+		engine.SpecificationURL = uploadedURL
+	}
+
+	// Save to DB
+	id, err := helper.PostEngine(engine)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	engine.ID = id
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(engine)
+}
+
+func EngineHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostEngine(w, r)
+	} else if r.Method == http.MethodGet {
+		GetEngines(w, r)
+	} else if r.Method == http.MethodPut {
+
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
 }

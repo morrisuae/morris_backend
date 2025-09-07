@@ -95,3 +95,20 @@ type EnquiresModel struct {
 	Attachments string    `json:"attachment"`
 	CreatedDate time.Time `json:"created_date"`
 }
+
+type Engine struct {
+	ID                uint      `json:"id"`
+	Name              string    `json:"name"`
+	PartNumber        string    `json:"part_number"`
+	Hz                string    `json:"hz"`
+	EpOrInd           string    `json:"ep_or_ind"`
+	Weight            string    `json:"weight"`
+	Coo               string    `json:"coo"`
+	Image             string    `json:"image"`
+	Description       string    `json:"description"`
+	AvailableLocation string    `json:"available_location"`
+	KVA               string    `json:"kva"`
+	SpecificationURL  string    `json:"specification_url"`
+	MainCategory      string    `json:"main_category"`
+	CreatedDate       time.Time `json:"created_date"`
+}

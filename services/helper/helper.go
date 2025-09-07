@@ -1233,3 +1233,135 @@ func GetRelatedParts(productID uint) ([]models.MorrisParts, error) {
 
 	return parts, nil
 }
+func GetEngines() ([]models.Engine, error) {
+	rows, err := DB.Query(`
+		SELECT 
+			id, 
+			name, 
+			part_number, 
+			hz, 
+			ep_or_ind, 
+			weight, 
+			coo, 
+			image, 
+			description, 
+			available_location, 
+			kva, 
+			specification_url, 
+			main_category, 
+			created_date
+		FROM engines
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var engines []models.Engine
+	for rows.Next() {
+		var e models.Engine
+		err := rows.Scan(
+			&e.ID,
+			&e.Name,
+			&e.PartNumber,
+			&e.Hz,
+			&e.EpOrInd,
+			&e.Weight,
+			&e.Coo,
+			&e.Image,
+			&e.Description,
+			&e.AvailableLocation,
+			&e.KVA,
+			&e.SpecificationURL,
+			&e.MainCategory, // ✅ added here
+			&e.CreatedDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+		engines = append(engines, e)
+	}
+
+	fmt.Println("Get Engines Successful")
+	return engines, nil
+}
+
+func PostEngine(e models.Engine) (uint, error) {
+	var id uint
+	query := `
+		INSERT INTO engines (
+			name, part_number, hz, ep_or_ind, weight, coo, image, description, 
+			available_location, kva, specification_url, main_category, created_date
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, 
+			$9, $10, $11, $12, $13
+		)
+		RETURNING id
+	`
+	err := DB.QueryRow(
+		query,
+		e.Name, e.PartNumber, e.Hz, e.EpOrInd, e.Weight, e.Coo,
+		e.Image, e.Description, e.AvailableLocation, e.KVA,
+		e.SpecificationURL, e.MainCategory, e.CreatedDate,
+	).Scan(&id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post Engine Successful, ID:", id)
+	return id, nil
+}
+
+func GetEnginesByMainCategory(category string) ([]models.Engine, error) {
+	rows, err := DB.Query(`
+		SELECT 
+			id, 
+			name, 
+			part_number, 
+			hz, 
+			ep_or_ind, 
+			weight, 
+			coo, 
+			image, 
+			description, 
+			available_location, 
+			kva, 
+			specification_url, 
+			main_category, 
+			created_date
+		FROM engines
+		WHERE main_category = $1
+	`, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var engines []models.Engine
+	for rows.Next() {
+		var e models.Engine
+		err := rows.Scan(
+			&e.ID,
+			&e.Name,
+			&e.PartNumber,
+			&e.Hz,
+			&e.EpOrInd,
+			&e.Weight,
+			&e.Coo,
+			&e.Image,
+			&e.Description,
+			&e.AvailableLocation,
+			&e.KVA,
+			&e.SpecificationURL,
+			&e.MainCategory,
+			&e.CreatedDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+		engines = append(engines, e)
+	}
+
+	return engines, nil
+}
