@@ -1913,15 +1913,15 @@ func PostEngine(w http.ResponseWriter, r *http.Request) {
 	engine.Description = r.FormValue("description")
 	engine.AvailableLocation = r.FormValue("available_location")
 	engine.KVA = r.FormValue("kva")
-	engine.MainCategory = r.FormValue("main_category") // ✅ NEW FIELD
+	engine.MainCategory = r.FormValue("main_category")
 	engine.CreatedDate = time.Now()
 
 	// AWS S3 session
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("eu-north-1"),
 		Credentials: credentials.NewStaticCredentials(
-			"AKIAWMFUPPBUFJOAZMAT",                     // Replace with your AWS access key ID
-			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S", // Replace with your AWS secret access key
+			"AKIAWMFUPPBUFJOAZMAT",
+			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S",
 			"",
 		),
 	})
@@ -1946,7 +1946,7 @@ func PostEngine(w http.ResponseWriter, r *http.Request) {
 		return fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", key), nil
 	}
 
-	// Upload image (optional)
+	// Upload main image
 	if file, _, err := r.FormFile("image"); err == nil {
 		fileBytes, _ := io.ReadAll(file)
 		file.Close()
@@ -1960,7 +1960,34 @@ func PostEngine(w http.ResponseWriter, r *http.Request) {
 		engine.Image = uploadedURL
 	}
 
-	// Upload Specification PDF (optional)
+	// Upload multiple images
+	files := r.MultipartForm.File["images[]"]
+	if len(files) == 0 {
+		files = r.MultipartForm.File["images"] // fallback
+	}
+
+	for _, f := range files {
+		src, err := f.Open()
+		if err != nil {
+			continue
+		}
+		fileBytes, _ := io.ReadAll(src)
+		src.Close()
+
+		imageKey := fmt.Sprintf("EngineImages/%d_%s", time.Now().UnixNano(), f.Filename)
+		uploadedURL, err := uploadToS3(fileBytes, imageKey)
+		if err != nil {
+			log.Printf("Failed to upload image %s: %v", f.Filename, err)
+			continue
+		}
+		engine.Images = append(engine.Images, uploadedURL)
+	}
+
+	if engine.Images == nil {
+		engine.Images = []string{}
+	}
+
+	// Upload Specification PDF
 	if file, header, err := r.FormFile("specification_pdf"); err == nil {
 		defer file.Close()
 		fileBytes, _ := io.ReadAll(file)
@@ -2155,6 +2182,19 @@ func EngineHandlerByID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 	}
 }
+func CatalogueHandlerByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+
+	} else if r.Method == http.MethodGet {
+		GetCatalogueByID(w, r)
+	} else if r.Method == http.MethodPut {
+
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
 func GetEnginesByID(w http.ResponseWriter, r *http.Request) {
 	idParam := r.URL.Query().Get("id")
 	mainCategory := r.URL.Query().Get("main_category")
@@ -2194,4 +2234,33 @@ func GetEnginesByID(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(engines)
+}
+
+func GetCatalogueByID(w http.ResponseWriter, r *http.Request) {
+	idParam := r.URL.Query().Get("id")
+
+	if idParam == "" {
+		http.Error(w, "Missing id", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		http.Error(w, "Invalid id", http.StatusBadRequest)
+		return
+	}
+
+	catalogue, err := helper.GetCatalogueByID(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if catalogue == nil {
+		http.Error(w, "Catalogue not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(catalogue)
 }

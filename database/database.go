@@ -50,6 +50,16 @@ func Initdb() {
 	// attachment TEXT,
 	// created_date TIMESTAMP
 	// )`
+	// 	alterTable := `
+	// 	ALTER TABLE engines
+	// 	ADD COLUMN IF NOT EXISTS images TEXT[];
+	// `
+
+	// 	_, err = helper.DB.Exec(alterTable)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	fmt.Println("Table altered successfully")
 
 	// createTable := `CREATE TABLE IF NOT EXISTS banners (
 	// id SERIAL PRIMARY KEY,

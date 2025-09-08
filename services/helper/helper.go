@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"morris-backend.com/main/services/models"
 )
 
@@ -1307,7 +1308,8 @@ func GetEngines() ([]models.Engine, error) {
 			kva, 
 			specification_url, 
 			main_category, 
-			created_date
+			created_date,
+			COALESCE(images, '{}') -- ✅ ensures empty array if NULL
 		FROM engines
 	`)
 	if err != nil {
@@ -1331,8 +1333,9 @@ func GetEngines() ([]models.Engine, error) {
 			&e.AvailableLocation,
 			&e.KVA,
 			&e.SpecificationURL,
-			&e.MainCategory, // ✅ added here
+			&e.MainCategory,
 			&e.CreatedDate,
+			pq.Array(&e.Images), // ✅ fetch multiple images
 		)
 		if err != nil {
 			return nil, err
@@ -1349,18 +1352,29 @@ func PostEngine(e models.Engine) (uint, error) {
 	query := `
 		INSERT INTO engines (
 			name, part_number, hz, ep_or_ind, weight, coo, image, description, 
-			available_location, kva, specification_url, main_category, created_date
+			available_location, kva, specification_url, main_category, created_date, images
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, 
-			$9, $10, $11, $12, $13
+			$9, $10, $11, $12, $13, $14
 		)
 		RETURNING id
 	`
 	err := DB.QueryRow(
 		query,
-		e.Name, e.PartNumber, e.Hz, e.EpOrInd, e.Weight, e.Coo,
-		e.Image, e.Description, e.AvailableLocation, e.KVA,
-		e.SpecificationURL, e.MainCategory, e.CreatedDate,
+		e.Name,
+		e.PartNumber,
+		e.Hz,
+		e.EpOrInd,
+		e.Weight,
+		e.Coo,
+		e.Image,
+		e.Description,
+		e.AvailableLocation,
+		e.KVA,
+		e.SpecificationURL,
+		e.MainCategory,
+		e.CreatedDate,
+		pq.Array(e.Images), // ✅ Save array properly
 	).Scan(&id)
 
 	if err != nil {
@@ -1370,6 +1384,7 @@ func PostEngine(e models.Engine) (uint, error) {
 	fmt.Println("Post Engine Successful, ID:", id)
 	return id, nil
 }
+
 func PostCatalogue(c models.Catalogue) (uint, error) {
 	var id uint
 	query := `
@@ -1411,7 +1426,8 @@ func GetEnginesByMainCategory(category string) ([]models.Engine, error) {
 			kva, 
 			specification_url, 
 			main_category, 
-			created_date
+			created_date,
+			COALESCE(images, '{}') -- ✅ ensures no null array
 		FROM engines
 		WHERE main_category = $1
 	`, category)
@@ -1438,6 +1454,7 @@ func GetEnginesByMainCategory(category string) ([]models.Engine, error) {
 			&e.SpecificationURL,
 			&e.MainCategory,
 			&e.CreatedDate,
+			pq.Array(&e.Images), // ✅ fetch multiple images
 		)
 		if err != nil {
 			return nil, err
@@ -1545,10 +1562,11 @@ func GetEngineByID(id uint) (*models.Engine, error) {
 			kva, 
 			specification_url, 
 			main_category, 
-			created_date
+			created_date,
+			COALESCE(images, '{}') -- ✅ ensures empty array if NULL
 		FROM engines
 		WHERE id = $1
-	`, id) // ✅ Postgres placeholder
+	`, id)
 
 	var e models.Engine
 	err := row.Scan(
@@ -1566,6 +1584,7 @@ func GetEngineByID(id uint) (*models.Engine, error) {
 		&e.SpecificationURL,
 		&e.MainCategory,
 		&e.CreatedDate,
+		pq.Array(&e.Images), // ✅ multiple images
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1575,4 +1594,40 @@ func GetEngineByID(id uint) (*models.Engine, error) {
 	}
 
 	return &e, nil
+}
+
+func GetCatalogueByID(id uint) (*models.Catalogue, error) {
+	row := DB.QueryRow(`
+		SELECT 
+			id,
+			title,
+			part_number,
+			description,
+			main_category,
+			image,
+			pdf_url,
+			created_date
+		FROM catalogues
+		WHERE id = $1
+	`, id)
+
+	var c models.Catalogue
+	err := row.Scan(
+		&c.ID,
+		&c.Title,
+		&c.PartNumber,
+		&c.Description,
+		&c.MainCategory,
+		&c.Image,
+		&c.PdfURL,
+		&c.CreatedDate,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &c, nil
 }

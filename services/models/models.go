@@ -105,6 +105,7 @@ type Engine struct {
 	Weight            string    `json:"weight"`
 	Coo               string    `json:"coo"`
 	Image             string    `json:"image"`
+	Images            []string  `json:"images"`
 	Description       string    `json:"description"`
 	AvailableLocation string    `json:"available_location"`
 	KVA               string    `json:"kva"`
