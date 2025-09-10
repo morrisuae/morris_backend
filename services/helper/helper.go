@@ -1631,3 +1631,63 @@ func GetCatalogueByID(id uint) (*models.Catalogue, error) {
 
 	return &c, nil
 }
+
+func PostCustomerDetails(c models.CustomerDetails) (uint, error) {
+	var id uint
+	query := `
+		INSERT INTO customer_details (
+			name, phone, email, company_name, country, created_date
+		) VALUES (
+			$1, $2, $3, $4, $5, $6
+		)
+		RETURNING id
+	`
+	err := DB.QueryRow(
+		query,
+		c.Name,
+		c.Phone,
+		c.Email,
+		c.CompanyName,
+		c.Country,
+		c.CreatedDate,
+	).Scan(&id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Println("Post CustomerDetails Successful, ID:", id)
+	return id, nil
+}
+func GetCustomerDetails() ([]models.CustomerDetails, error) {
+	rows, err := DB.Query(`
+		SELECT id, name, phone, email, company_name, country, created_date
+		FROM customer_details
+		ORDER BY created_date DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var customers []models.CustomerDetails
+
+	for rows.Next() {
+		var c models.CustomerDetails
+		err := rows.Scan(
+			&c.ID,
+			&c.Name,
+			&c.Phone,
+			&c.Email,
+			&c.CompanyName,
+			&c.Country,
+			&c.CreatedDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+		customers = append(customers, c)
+	}
+
+	return customers, nil
+}

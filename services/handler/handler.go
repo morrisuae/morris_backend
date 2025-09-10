@@ -2264,3 +2264,55 @@ func GetCatalogueByID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(catalogue)
 }
+
+func CustomerDetails(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		PostCustomerDetails(w, r)
+	} else if r.Method == http.MethodGet {
+		GetCustomerDetailsHandler(w, r)
+	} else if r.Method == http.MethodPut {
+
+	} else if r.Method == http.MethodDelete {
+
+	} else {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+	}
+}
+
+func PostCustomerDetails(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(10 << 20) // 10MB max
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	var customer models.CustomerDetails
+	customer.Name = r.FormValue("name")
+	customer.Phone = r.FormValue("phone")
+	customer.Email = r.FormValue("email")
+	customer.CompanyName = r.FormValue("company_name")
+	customer.Country = r.FormValue("country")
+	customer.CreatedDate = time.Now()
+
+	// Save to DB
+	id, err := helper.PostCustomerDetails(customer)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	customer.ID = id
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(customer)
+}
+
+func GetCustomerDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	customers, err := helper.GetCustomerDetails()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(customers)
+}

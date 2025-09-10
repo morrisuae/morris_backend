@@ -60,6 +60,8 @@ func main() {
 
 	http.Handle("/catalogues/detail", middleware.AuthMiddleware(http.HandlerFunc(handler.CatalogueHandlerByID)))
 
+	http.Handle("/customerdetails", middleware.AuthMiddleware(http.HandlerFunc(handler.CustomerDetails)))
+
 	http.ListenAndServe(":8080", nil)
 
 }

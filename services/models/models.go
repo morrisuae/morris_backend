@@ -124,3 +124,13 @@ type Catalogue struct {
 	PdfURL       string    `json:"pdf_url"`
 	CreatedDate  time.Time `json:"created_date"`
 }
+
+type CustomerDetails struct {
+	ID          uint      `json:"id"`
+	Name        string    `json:"name"`
+	Phone       string    `json:"phone"`
+	Email       string    `json:"email"`
+	CompanyName string    `json:"company_name"`
+	Country     string    `json:"country"`
+	CreatedDate time.Time `json:"created_date"`
+}
