@@ -686,9 +686,9 @@ func GetSubCategoriesByCategoryNameAndType(categoryName, categoryType string) ([
 	return subCategories, nil
 }
 
-func GetPartsByCategory(mainCategory, subCategory string) ([]models.MorrisParts, error) {
-	if mainCategory == "" || subCategory == "" {
-		return nil, errors.New("main_category and sub_category are required")
+func GetPartsByCategory(mainCategory string) ([]models.MorrisParts, error) {
+	if mainCategory == "" {
+		return nil, errors.New("main_category is required")
 	}
 
 	query := `
@@ -696,11 +696,11 @@ func GetPartsByCategory(mainCategory, subCategory string) ([]models.MorrisParts,
 		       remain_part_number, coo, ref_no, image, images, main_category, sub_category,
 		       dimension, compatible_engine_models, available_location, price
 		FROM morrisparts
-		WHERE main_category = $1 AND sub_category = $2
+		WHERE main_category = $1
 		ORDER BY id ASC
 	`
 
-	rows, err := DB.Query(query, mainCategory, subCategory)
+	rows, err := DB.Query(query, mainCategory)
 	if err != nil {
 		return nil, err
 	}

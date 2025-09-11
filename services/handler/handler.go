@@ -1155,14 +1155,13 @@ func GetSubCategoriesByCategoryNameAndTypeHandler(w http.ResponseWriter, r *http
 
 func GetPartsByCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	mainCategory := r.URL.Query().Get("main_category")
-	subCategory := r.URL.Query().Get("sub_category")
 
-	if mainCategory == "" || subCategory == "" {
-		http.Error(w, "Both main_category and sub_category are required", http.StatusBadRequest)
+	if mainCategory == "" {
+		http.Error(w, "main_category is required", http.StatusBadRequest)
 		return
 	}
 
-	parts, err := helper.GetPartsByCategory(mainCategory, subCategory)
+	parts, err := helper.GetPartsByCategory(mainCategory)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
