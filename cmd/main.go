@@ -13,6 +13,7 @@ func main() {
 
 	//Part router
 	http.Handle("/part", middleware.AuthMiddleware(http.HandlerFunc(handler.PartHandler)))
+
 	http.Handle("/parts", middleware.AuthMiddleware(http.HandlerFunc(handler.GetPartHandlerByPartNumber)))
 
 	//Banner router
