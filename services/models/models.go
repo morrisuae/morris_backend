@@ -134,3 +134,11 @@ type CustomerDetails struct {
 	Country     string    `json:"country"`
 	CreatedDate time.Time `json:"created_date"`
 }
+
+type BrandCategory struct {
+	ID           uint      `json:"id"`
+	Name         string    `json:"name"`
+	Image        string    `json:"image"`
+	CreatedDate  time.Time `json:"created_date"`
+	MainCategory string    `json:"main_category"` // 👈 new field
+}

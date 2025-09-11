@@ -1691,3 +1691,38 @@ func GetCustomerDetails() ([]models.CustomerDetails, error) {
 
 	return customers, nil
 }
+func GetBrandCategories() ([]models.BrandCategory, error) {
+	query := `SELECT id, name, image, main_category, created_date 
+	          FROM brand_categories 
+	          ORDER BY id DESC`
+
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []models.BrandCategory
+
+	for rows.Next() {
+		var c models.BrandCategory
+		err := rows.Scan(&c.ID, &c.Name, &c.Image, &c.MainCategory, &c.CreatedDate)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, c)
+	}
+
+	return categories, nil
+}
+
+func PostBrandCategory(b models.BrandCategory) (uint, error) {
+	query := `
+        INSERT INTO brand_categories (name, image, main_category, created_date)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+    `
+	var id uint
+	err := DB.QueryRow(query, b.Name, b.Image, b.MainCategory, b.CreatedDate).Scan(&id)
+	return id, err
+}

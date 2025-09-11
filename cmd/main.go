@@ -63,6 +63,8 @@ func main() {
 
 	http.Handle("/customerdetails", middleware.AuthMiddleware(http.HandlerFunc(handler.CustomerDetails)))
 
+	http.Handle("/brandcategory", middleware.AuthMiddleware(http.HandlerFunc(handler.BrandCategoryHandler)))
+
 	http.ListenAndServe(":8080", nil)
 
 }
