@@ -1726,3 +1726,23 @@ func PostBrandCategory(b models.BrandCategory) (uint, error) {
 	err := DB.QueryRow(query, b.Name, b.Image, b.MainCategory, b.CreatedDate).Scan(&id)
 	return id, err
 }
+
+func DeleteCustomerByID(id uint) error {
+	query := `DELETE FROM customer_details WHERE id = $1`
+
+	result, err := DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("customer not found")
+	}
+
+	return nil
+}

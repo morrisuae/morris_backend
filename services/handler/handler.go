@@ -2272,7 +2272,7 @@ func CustomerDetails(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == http.MethodPut {
 
 	} else if r.Method == http.MethodDelete {
-
+		DeleteCustomerHandler(w, r)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 	}
@@ -2412,4 +2412,28 @@ func BrandCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
 	}
+}
+
+func DeleteCustomerHandler(w http.ResponseWriter, r *http.Request) {
+	// Expecting ?id=123
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "id is required", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	err = helper.DeleteCustomerByID(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "customer deleted successfully"})
 }
