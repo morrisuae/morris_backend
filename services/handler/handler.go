@@ -1549,50 +1549,53 @@ func HandlePostEnquiry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract file
+	// Optional file upload
+	var attachmentURL string
 	file, header, err := r.FormFile("attachment")
-	if err != nil {
+	if err == nil {
+		defer file.Close()
+
+		// Read file bytes
+		fileBytes := new(bytes.Buffer)
+		if _, err := fileBytes.ReadFrom(file); err != nil {
+			http.Error(w, "Failed to read file bytes", http.StatusInternalServerError)
+			return
+		}
+
+		// Upload file to S3
+		sess, err := session.NewSession(&aws.Config{
+			Region: aws.String("eu-north-1"),
+			Credentials: credentials.NewStaticCredentials(
+				"AKIAWMFUPPBUFJOAZMAT",                     // Replace with your AWS access key ID
+				"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S", // Replace with your AWS secret access key
+				""), // Optional token, leave blank if not using
+		})
+		if err != nil {
+			log.Printf("Failed to create AWS session: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		svc := s3.New(sess)
+		fileKey := fmt.Sprintf("attachments/%d_%s", time.Now().Unix(), header.Filename)
+		_, err = svc.PutObject(&s3.PutObjectInput{
+			Bucket: aws.String("morriuae"),
+			Key:    aws.String(fileKey),
+			Body:   bytes.NewReader(fileBytes.Bytes()),
+		})
+		if err != nil {
+			log.Printf("Failed to upload file to S3: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Construct file URL
+		attachmentURL = fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", fileKey)
+	} else if err != http.ErrMissingFile {
+		// If error is not "missing file", return error
 		http.Error(w, "Failed to read attachment", http.StatusBadRequest)
 		return
 	}
-	defer file.Close()
-
-	// Read file bytes
-	fileBytes := new(bytes.Buffer)
-	if _, err := fileBytes.ReadFrom(file); err != nil {
-		http.Error(w, "Failed to read file bytes", http.StatusInternalServerError)
-		return
-	}
-
-	// Upload file to S3
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("eu-north-1"),
-		Credentials: credentials.NewStaticCredentials(
-			"AKIAWMFUPPBUFJOAZMAT",                     // Replace with your AWS access key ID
-			"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S", // Replace with your AWS secret access key
-			""), // Optional token, leave blank if not using
-	})
-	if err != nil {
-		log.Printf("Failed to create AWS session: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	svc := s3.New(sess)
-	fileKey := fmt.Sprintf("attachments/%d_%s", time.Now().Unix(), header.Filename)
-	_, err = svc.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String("morriuae"), // Replace with your S3 bucket name
-		Key:    aws.String(fileKey),
-		Body:   bytes.NewReader(fileBytes.Bytes()),
-	})
-	if err != nil {
-		log.Printf("Failed to upload file to S3: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	// Construct file URL
-	attachmentURL := fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", fileKey)
 
 	// Save enquiry to the database
 	id, err := helper.PostEnquiry(name, email, phone, enquiry, attachmentURL)

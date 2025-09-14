@@ -1056,17 +1056,23 @@ func GetPartsOnlyBySubCategory(subCategory string) ([]models.MorrisParts, error)
 	return parts, nil
 }
 
-// PostEnquiry inserts a new enquiry into the database
 func PostEnquiry(name, email, phone, enquiry, attachments string) (uint, error) {
 	var id uint
-
-	// Use current time as the created date
 	currentTime := time.Now()
 
-	// Execute the database query to insert the enquiry
+	// Use nil for attachments if empty string
+	var attachmentValue interface{}
+	if attachments == "" {
+		attachmentValue = nil
+	} else {
+		attachmentValue = attachments
+	}
+
 	err := DB.QueryRow(
-		"INSERT INTO enquiries (name, email, phone, enquiry, attachment, created_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-		name, email, phone, enquiry, attachments, currentTime,
+		`INSERT INTO enquiries 
+			(name, email, phone, enquiry, attachment, created_date) 
+		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+		name, email, phone, enquiry, attachmentValue, currentTime,
 	).Scan(&id)
 
 	if err != nil {
@@ -1074,7 +1080,6 @@ func PostEnquiry(name, email, phone, enquiry, attachments string) (uint, error) 
 	}
 
 	fmt.Println("Enquiry posted successfully")
-
 	return id, nil
 }
 
