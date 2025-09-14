@@ -1636,14 +1636,13 @@ func GetCatalogueByID(id uint) (*models.Catalogue, error) {
 
 	return &c, nil
 }
-
 func PostCustomerDetails(c models.CustomerDetails) (uint, error) {
 	var id uint
 	query := `
 		INSERT INTO customer_details (
-			name, phone, email, company_name, country, created_date
+			name, phone, email, company_name, country, attachment, created_date
 		) VALUES (
-			$1, $2, $3, $4, $5, $6
+			$1, $2, $3, $4, $5, $6, $7
 		)
 		RETURNING id
 	`
@@ -1654,6 +1653,7 @@ func PostCustomerDetails(c models.CustomerDetails) (uint, error) {
 		c.Email,
 		c.CompanyName,
 		c.Country,
+		c.Attachments,
 		c.CreatedDate,
 	).Scan(&id)
 
@@ -1664,6 +1664,7 @@ func PostCustomerDetails(c models.CustomerDetails) (uint, error) {
 	fmt.Println("Post CustomerDetails Successful, ID:", id)
 	return id, nil
 }
+
 func GetCustomerDetails() ([]models.CustomerDetails, error) {
 	rows, err := DB.Query(`
 		SELECT id, name, phone, email, company_name, country, created_date

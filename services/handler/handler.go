@@ -1512,7 +1512,7 @@ func GetPartsByOnlySubCategory(w http.ResponseWriter, r *http.Request) {
 
 func EnquiryHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		HandlePostEnquiry(w, r)
+		HandlePostCustomerDetails(w, r)
 	} else if r.Method == http.MethodGet {
 		GetEnquiries(w, r)
 	} else if r.Method == http.MethodPut {
@@ -1524,7 +1524,7 @@ func EnquiryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandlePostEnquiry(w http.ResponseWriter, r *http.Request) {
+func HandlePostCustomerDetails(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -1541,10 +1541,11 @@ func HandlePostEnquiry(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	email := r.FormValue("email")
 	phone := r.FormValue("phone")
-	enquiry := r.FormValue("enquiry")
+	country := r.FormValue("country")
+	companyName := r.FormValue("company_name")
 
 	// Validate required fields
-	if name == "" || email == "" || phone == "" || enquiry == "" {
+	if name == "" || email == "" || phone == "" || country == "" || companyName == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
@@ -1566,9 +1567,10 @@ func HandlePostEnquiry(w http.ResponseWriter, r *http.Request) {
 		sess, err := session.NewSession(&aws.Config{
 			Region: aws.String("eu-north-1"),
 			Credentials: credentials.NewStaticCredentials(
-				"AKIAWMFUPPBUFJOAZMAT",                     // Replace with your AWS access key ID
-				"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S", // Replace with your AWS secret access key
-				""), // Optional token, leave blank if not using
+				"AKIAWMFUPPBUFJOAZMAT",
+				"kFHNm5UvPvBcEDiFi6p3sRuej9oruy6kSYkkjk/S",
+				"",
+			),
 		})
 		if err != nil {
 			log.Printf("Failed to create AWS session: %v", err)
@@ -1592,33 +1594,34 @@ func HandlePostEnquiry(w http.ResponseWriter, r *http.Request) {
 		// Construct file URL
 		attachmentURL = fmt.Sprintf("https://morriuae.s3.amazonaws.com/%s", fileKey)
 	} else if err != http.ErrMissingFile {
-		// If error is not "missing file", return error
 		http.Error(w, "Failed to read attachment", http.StatusBadRequest)
 		return
 	}
 
-	// Save enquiry to the database
-	id, err := helper.PostEnquiry(name, email, phone, enquiry, attachmentURL)
-	if err != nil {
-		http.Error(w, "Failed to save enquiry: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Create response object
-	response := models.EnquiresModel{
-		ID:          id,
+	// Save customer details
+	customer := models.CustomerDetails{
 		Name:        name,
 		Email:       email,
 		Phone:       phone,
-		Enquiry:     enquiry,
+		Country:     country,
+		CompanyName: companyName,
 		Attachments: attachmentURL,
 		CreatedDate: time.Now(),
 	}
 
+	id, err := helper.PostCustomerDetails(customer)
+	if err != nil {
+		http.Error(w, "Failed to save customer details: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Attach DB ID to response
+	customer.ID = id
+
 	// Send JSON response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err := json.NewEncoder(w).Encode(customer); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 	}
 }
@@ -2269,7 +2272,7 @@ func GetCatalogueByID(w http.ResponseWriter, r *http.Request) {
 
 func CustomerDetails(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		PostCustomerDetails(w, r)
+		HandlePostCustomerDetails(w, r)
 	} else if r.Method == http.MethodGet {
 		GetCustomerDetailsHandler(w, r)
 	} else if r.Method == http.MethodPut {

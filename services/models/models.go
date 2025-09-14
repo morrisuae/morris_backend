@@ -132,6 +132,7 @@ type CustomerDetails struct {
 	Email       string    `json:"email"`
 	CompanyName string    `json:"company_name"`
 	Country     string    `json:"country"`
+	Attachments string    `json:"attachments,omitempty"` // optional, S3 URL
 	CreatedDate time.Time `json:"created_date"`
 }
 
