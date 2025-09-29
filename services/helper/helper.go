@@ -695,7 +695,7 @@ func GetPartsByCategory(mainCategory string) ([]models.MorrisParts, error) {
 		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
 		       remain_part_number, coo, ref_no, image, images, main_category, sub_category,
 		       dimension, compatible_engine_models, available_location, price
-		FROM morrisparts
+		FROM parts
 		WHERE main_category = $1
 		ORDER BY id ASC
 	`

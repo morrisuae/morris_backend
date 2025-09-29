@@ -41,6 +41,16 @@ func Initdb() {
 	}
 	fmt.Println("Database connection established")
 
+	// 	alterTable := `
+	// ALTER TABLE parts
+	// ADD COLUMN IF NOT EXISTS created_date TIMESTAMP DEFAULT NOW();
+	// `
+	// 	_, err = helper.DB.Exec(alterTable)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	fmt.Println("Table altered successfully")
+
 	// createTable := `CREATE TABLE IF NOT EXISTS enquiries (
 	// id SERIAL PRIMARY KEY,
 	// name TEXT,
