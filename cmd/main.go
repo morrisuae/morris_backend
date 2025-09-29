@@ -49,7 +49,7 @@ func main() {
 
 	http.Handle("/enquiries", middleware.AuthMiddleware(http.HandlerFunc(handler.EnquiryHandler)))
 
-	http.Handle("/morrisparts/part", middleware.AuthMiddleware(http.HandlerFunc(handler.ParxtByIDHandler)))
+	http.Handle("/morrisparts/part", middleware.AuthMiddleware(http.HandlerFunc(handler.PartByIDHandler)))
 
 	http.Handle("/morrisparts/relatedparts", middleware.AuthMiddleware(http.HandlerFunc(handler.GetRelatedParts)))
 
