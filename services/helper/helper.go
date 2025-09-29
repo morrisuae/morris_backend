@@ -374,7 +374,7 @@ func GetMorrisParts() ([]models.MorrisParts, error) {
 			compatible_engine_models,
 			available_location,
 			price
-		FROM morrisparts
+		FROM parts
 	`)
 	if err != nil {
 		return nil, err
@@ -469,7 +469,7 @@ func PostMorrisParts(
 	}
 
 	query := `
-        INSERT INTO morrisparts (
+        INSERT INTO parts (
             name, part_number, part_description, super_ss_number,
             weight, hs_code, remain_part_number, coo, ref_no,
             image, main_category, sub_category, dimension,
@@ -502,7 +502,7 @@ func PostMorrisParts(
 }
 
 func DeleteMorrisPart(id uint) error {
-	result, err := DB.Exec("DELETE FROM morrisparts WHERE id=$1", id)
+	result, err := DB.Exec("DELETE FROM parts WHERE id=$1", id)
 
 	if err != nil {
 		return fmt.Errorf("failed to delete part: %w", err)
@@ -764,7 +764,7 @@ func SearchParts(partNumber string) ([]models.MorrisParts, error) {
 	query := `
 		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
 		       remain_part_number, coo, ref_no, image, main_category, sub_category
-		FROM morrisparts
+		FROM parts
 		WHERE part_number ILIKE $1
 		ORDER BY id ASC`
 
@@ -895,7 +895,7 @@ func DeleteSubCategory(id uint) error {
 // UpdatePart updates a part in the database based on its ID.
 func UpdatePart(part models.MorrisParts) error {
 	query := `
-		UPDATE morrisparts 
+		UPDATE parts 
 		SET 
 			name = $1, 
 			part_number = $2, 
@@ -952,7 +952,7 @@ func GetPartsOnlyByCategory(mainCategory string) ([]models.MorrisParts, error) {
 	query := `
 		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
 		       remain_part_number, coo, ref_no, image, main_category, sub_category
-		FROM morrisparts
+		FROM parts
 		WHERE main_category = $1
 		ORDER BY id ASC`
 
@@ -1024,7 +1024,7 @@ func GetPartsOnlyBySubCategory(subCategory string) ([]models.MorrisParts, error)
 	query := `
 		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
 		       remain_part_number, coo, ref_no, image, main_category, sub_category
-		FROM morrisparts
+		FROM parts
 		WHERE sub_category = $1
 		ORDER BY id ASC`
 
@@ -1121,7 +1121,7 @@ func GetPartByID(id string) (*models.MorrisParts, error) {
 		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
 		       remain_part_number, coo, ref_no, image, images, main_category, sub_category,
 		       dimension, compatible_engine_models, available_location, price
-		FROM morrisparts
+		FROM parts
 		WHERE id = $1
 	`
 
@@ -1189,7 +1189,7 @@ func UpdateMorrisParts(
 	}
 
 	query := `
-		UPDATE morrisparts 
+		UPDATE parts 
 		SET name=$1, part_number=$2, part_description=$3, super_ss_number=$4,
 		    weight=$5, hs_code=$6, remain_part_number=$7, coo=$8, ref_no=$9,
 		    image=$10, images=$11::jsonb,
@@ -1219,7 +1219,7 @@ func GetRelatedParts(productID uint) ([]models.MorrisParts, error) {
 	var mainCategory, subCategory string
 	err := DB.QueryRow(`
 		SELECT main_category, sub_category 
-		FROM morrisparts 
+		FROM parts 
 		WHERE id = $1
 	`, productID).Scan(&mainCategory, &subCategory)
 
@@ -1235,7 +1235,7 @@ func GetRelatedParts(productID uint) ([]models.MorrisParts, error) {
 		SELECT id, name, part_number, part_description, super_ss_number, weight, hs_code,
 		       remain_part_number, coo, ref_no, image, images, main_category, sub_category,
 		       dimension, compatible_engine_models, available_location, price
-		FROM morrisparts
+		FROM parts
 		WHERE main_category = $1 AND sub_category = $2 AND id != $3
 		ORDER BY id ASC
 		LIMIT 10
